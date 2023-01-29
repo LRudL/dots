@@ -2,7 +2,7 @@ import torch as t
 import torch.nn.functional as f
 import torch.nn.utils.stateless as stateless
 from einops import rearrange
-from src.utils import flatten
+from src.utils import entropy
 
 def jacobian(model, inputs):
     # def input_as_fn_of_params(param_tensor):
@@ -24,10 +24,19 @@ def matrix_jacobian(model, inputs):
 def jacobian_matrix_rank(model, inputs):
     return t.linalg.matrix_rank(matrix_jacobian(model, inputs))
 
+def singular_value_rank(model, inputs, method="entropy"):
+    if method=="entropy":
+        return t.exp(entropy(t.linalg.svd(jacobian(model, inputs)).S))
+    else:
+        raise Exception(
+            f"singular_value_rank does not implement method: {method}")
 
 class JModule(t.nn.Module):
     # To do Jacobians nicely, it is very convenient to have
-    # a model class that 
+    # a model class where you can get a tensor of all parameters.
+    # This is what JModule does. All the functions above assume
+    # that the model passed into them is a JModule
+    # (rather than just any torch.nn.Module)
     def __init__(self):
         super().__init__()
 
@@ -62,6 +71,9 @@ class JModule(t.nn.Module):
     
     def jacobian_matrix_rank(self, inputs):
         return jacobian_matrix_rank(self, inputs)
+    
+    def singular_value_rank(self, inputs):
+        return singular_value_rank(self, inputs)
     
     
     
