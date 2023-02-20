@@ -84,18 +84,35 @@ def wrap_train_with_hooks(add_hooks):
         model, optimiser, loss_fn, dataloader, epochs, hooks = add_hooks + hooks 
     )
 
-def train_loss_hook(epochs=1, train_steps = 1):
-    train_losses = []
+def property_storage_hook(fn, epochs=1, train_steps=1):
+    vals = []
     return TrainHook(
-        lambda obj : train_losses.append(obj["train_loss"].item()),
+        lambda obj : vals.append(fn(obj)),
         epochs,
         train_steps,
-        storage =  train_losses
+        storage = vals 
     )
 
+train_loss_hook = lambda epochs=1, train_steps=1 : property_storage_hook(
+    lambda obj : obj["train_loss"].item(),
+    epochs,
+    train_steps
+)
+
+jacobian_rank_hook = lambda x, ep=1, steps=1 : property_storage_hook(
+    lambda obj : obj["model"].jacobian_matrix_rank(x),
+    ep,
+    steps
+)
+
+sv_rank_hook = lambda x, epochs=1, train_steps=1 : property_storage_hook(
+    lambda obj : obj["model"].singular_value_rank(x),
+    epochs,
+    train_steps
+)
+
 def test_loss_hook(test_dataloader, epochs=1, train_steps=-1):
-    test_losses = []
-    def get_and_append_test_loss(obj):
+    def get_test_loss(obj):
         total_items = 0
         loss_times_items = 0
         for (x, y) in test_dataloader:
@@ -103,9 +120,12 @@ def test_loss_hook(test_dataloader, epochs=1, train_steps=-1):
             loss = obj["loss_fn"]
             loss_times_items += loss(predicted_y, y).item() * x.shape[0]
             total_items += x.shape[0]
-        test_losses.append(loss_times_items / total_items)
-    return TrainHook(get_and_append_test_loss, epochs, train_steps, test_losses)
-
+        return loss_times_items / total_items
+    return property_storage_hook(
+        get_test_loss,
+        epochs,
+        train_steps
+    )
 
 def train_and_return_losses(
     model,
@@ -117,7 +137,7 @@ def train_and_return_losses(
     hooks = [],
     steps_per_test_loss = None
 ):
-    train_hook = train_loss_hook()
+    train_hook = train_loss_hook(1, 1)
     test_hook = test_loss_hook(
         test_loader,
         train_steps = -1 if steps_per_test_loss is None else steps_per_test_loss
