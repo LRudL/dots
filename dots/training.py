@@ -127,18 +127,18 @@ train_loss_hook = lambda epochs=1, train_steps=1 : property_storage_hook(
     name="loss, train"
 )
 
-jacobian_rank_hook = lambda x, ep=1, steps=1 : property_storage_hook(
+jacobian_rank_hook = lambda x, epochs=1, train_steps=-1 : property_storage_hook(
     lambda obj : obj["model"].jacobian_matrix_rank(x),
-    ep,
-    steps,
-    name="DOTS, Jacobian rank"
+    epochs,
+    train_steps,
+    name=f"DOTS, Jacobian rank w/ n={x.shape[0]}"
 )
 
-sv_rank_hook = lambda x, epochs=1, train_steps=1 : property_storage_hook(
+sv_rank_hook = lambda x, epochs=1, train_steps=-1 : property_storage_hook(
     lambda obj : obj["model"].singular_value_rank(x),
     epochs,
     train_steps,
-    name="DOTS, sv rank"
+    name=f"DOTS, sv rank w/ n={x.shape[0]}"
 )
 
 def test_loss_hook(test_dataloader, epochs=1, train_steps=-1):
@@ -281,5 +281,5 @@ class TrainState():
             axs[i].set_title(gname)
             axs[i].set_xlabel("epoch")
             axs[i].legend()
-            axs[i].set_yscale("log")
-        return 0
+            if gname == "loss":
+                axs[i].set_yscale("log")
