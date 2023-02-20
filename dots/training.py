@@ -238,7 +238,7 @@ class TrainState():
               epochs=epochs,
               hooks=self.hooks)
         for hook in self.hooks:
-            hook.increment_counters(epochs, len(self.dataloader))
+            hook.increment_counters(epochs, epochs*len(self.dataloader))
         if checkpoint:
             self.checkpoint()
     
@@ -281,4 +281,5 @@ class TrainState():
             axs[i].set_title(gname)
             axs[i].set_xlabel("epoch")
             axs[i].legend()
+            axs[i].set_yscale("log")
         return 0
