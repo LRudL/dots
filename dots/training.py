@@ -44,7 +44,10 @@ class TrainHook:
     def will_trigger(self, epoch, step, total_epochs, total_steps):
         right_epoch = test_trigger(epoch, self.epochs, total_epochs)
         right_step  = test_trigger(step, self.train_steps, total_steps)
-        return right_epoch and right_step
+        return right_epoch and (right_step or
+                                (self.train_steps == -1 and
+                                 step == 0 and
+                                 epoch == 0))
     
     def increment_counters(self, epochs, steps):
         self.prior_epochs += epochs
