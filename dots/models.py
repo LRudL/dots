@@ -1,5 +1,5 @@
 from dots.dots import JModule
-from dots.utils import flatten
+from dots.utils import flatten, get_device
 import torch as t
 
 class MLP(JModule):
