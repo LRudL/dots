@@ -22,6 +22,22 @@ class MLP(JModule):
     def forward(self, x):
         return self.layers(x)
 
+class DeepLinear(MLP):
+    def __init__(
+        self,
+        in_size,
+        out_size,
+        hidden=0,
+        hidden_size = None
+    ):
+        super().__init__(
+            in_size,
+            out_size,
+            hidden,
+            hidden_size,
+            nonlinearity=t.nn.Identity
+        )
+
 class BasicCNN(JModule):
     def __init__(
         self,
