@@ -24,12 +24,29 @@ def matrix_jacobian(model, inputs):
 def jacobian_matrix_rank(model, inputs):
     return t.linalg.matrix_rank(matrix_jacobian(model, inputs))
 
+def jacobian_singular_values(model, inputs):
+    return t.linalg.svd(matrix_jacobian(model, inputs)).S
+
 def singular_value_rank(model, inputs, method="entropy"):
     if method=="entropy":
-        return t.exp(entropy(t.linalg.svd(matrix_jacobian(model, inputs)).S))
+        return t.exp(entropy(jacobian_singular_values(model, inputs)))
+    elif method=="heuristic":
+        svs = jacobian_singular_values(model, inputs)
+        # we create an array containing the sums of all values after that index:
+        cumsums = t.flip(
+            t.cumsum(
+                t.flip(svs, dims=[0]),
+                dim=0),
+            dims=[0]
+        ) - svs
+        # find the first index i such that svs[i] > cumsums[i+1]:
+        # (.float() because argmax not implemented for Bool tensors)
+        # (NB: F I R S T  such index; there might be many)
+        return t.argmax(((svs - cumsums) > 0).float()).item()
     else:
         raise Exception(
             f"singular_value_rank does not implement method: {method}")
+
 
 class JModule(t.nn.Module):
     # To do Jacobians nicely, it is very convenient to have
@@ -73,8 +90,11 @@ class JModule(t.nn.Module):
     def jacobian_matrix_rank(self, inputs):
         return jacobian_matrix_rank(self, inputs)
     
-    def singular_value_rank(self, inputs):
-        return singular_value_rank(self, inputs)
+    def jacobian_singular_values(self, inputs):
+        return jacobian_singular_values(self, inputs)
+    
+    def singular_value_rank(self, inputs, method="entropy"):
+        return singular_value_rank(self, inputs, method=method)
     
     
     
