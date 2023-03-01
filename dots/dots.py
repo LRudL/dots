@@ -48,6 +48,10 @@ def singular_value_rank(model, inputs, method="entropy"):
         raise Exception(
             f"singular_value_rank does not implement method: {method}")
 
+def jacobian_parameter_importances(model, inputs):
+    jacobian = matrix_jacobian(model, inputs)
+    return (jacobian ** 2).sum(dim=0)
+
 
 class JModule(t.nn.Module):
     # To do Jacobians nicely, it is very convenient to have
@@ -97,6 +101,8 @@ class JModule(t.nn.Module):
     def singular_value_rank(self, inputs, method="entropy"):
         return singular_value_rank(self, inputs, method=method)
     
+    def jacobian_parameter_importances(self, inputs):
+        return jacobian_parameter_importances(self, inputs)
     
     
 
