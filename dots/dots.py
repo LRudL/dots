@@ -42,7 +42,8 @@ def singular_value_rank(model, inputs, method="entropy"):
         # find the first index i such that svs[i] > cumsums[i+1]:
         # (.float() because argmax not implemented for Bool tensors)
         # (NB: F I R S T  such index; there might be many)
-        return t.argmax(((svs - cumsums) > 0).float()).item()
+        # (+1 because of 0-indexing)
+        return t.argmax(((svs - cumsums) > 0).float()).item() + 1
     else:
         raise Exception(
             f"singular_value_rank does not implement method: {method}")

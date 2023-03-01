@@ -40,6 +40,7 @@ def plot_dots_stats(model, inputs):
         y = []
         for input in inputs:
             y.append(getter(model, input))
+        print(f"{getter_name} ranks: {y}")
         plt.bar(x - 0.2 + 0.2 * i, y, 0.2, label=getter_name)
     print(f"Parameters in model: {model.count_params()}")
     plt.legend()
