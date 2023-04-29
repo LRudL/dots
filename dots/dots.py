@@ -2,7 +2,7 @@ import torch as t
 import torch.nn.functional as f
 import torch.nn.utils.stateless as stateless
 from einops import rearrange
-from dots.utils import entropy
+from dots.utils import entropy, get_device
 
 def jacobian(model, inputs):
     # def input_as_fn_of_params(param_tensor):
@@ -39,6 +39,7 @@ class JModule(t.nn.Module):
     # (rather than just any torch.nn.Module)
     def __init__(self):
         super().__init__()
+        self.to(device=get_device())
 
     def get_param_tensor(self):
         return t.cat([
