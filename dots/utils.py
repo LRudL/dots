@@ -5,6 +5,9 @@ import numpy as np
 
 flatten = lambda l : [item for sl in l for item in sl]
 
+def is_tensor(obj):
+    return isinstance(obj, t.Tensor)
+
 def entropy(x, base=math.e):
     if isinstance(x, list) or isinstance(x, tuple):
         x = t.tensor(x)
@@ -14,10 +17,10 @@ def entropy(x, base=math.e):
 def get_device():
     return t.device("cuda" if t.cuda.is_available() else "cpu")
 
-def random_batch(n, shape):
+def random_batch(n, shape, move_to_device=True):
     if isinstance(shape, int):
         shape = (shape,)
-    return t.rand((n,) + shape)
+    return t.rand((n,) + shape).to(get_device())
 
 def plot_dots_stats(model, inputs):
     dots_getters = [
@@ -39,7 +42,10 @@ def plot_dots_stats(model, inputs):
     for i, (getter_name, getter) in enumerate(zip(getter_names, dots_getters)):
         y = []
         for input in inputs:
-            y.append(getter(model, input))
+            new = getter(model, input)
+            if is_tensor(new):
+                new = new.cpu()
+            y.append(new)
         print(f"{getter_name} ranks: {y}")
         plt.bar(x - 0.2 + 0.2 * i, y, 0.2, label=getter_name)
     print(f"Parameters in model: {model.count_params()}")
@@ -52,7 +58,7 @@ def plot_dots_stats(model, inputs):
     fig, ax = plt.subplots()
     for input in inputs:
         ax.plot(
-            model.jacobian_singular_values(input),
+            model.jacobian_singular_values(input).cpu(),
             label=f"{input.shape[0]} data points"
         )
     ax.set_title("Singular value distribution")
@@ -62,7 +68,7 @@ def plot_dots_stats(model, inputs):
     
     # Visualise matrices
     matrices = [
-        model.matrix_jacobian(input) for input in inputs
+        model.matrix_jacobian(input).cpu() for input in inputs
     ]
     fig, axs = plt.subplots(len(matrices))
     if len(matrices) == 1:

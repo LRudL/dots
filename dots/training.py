@@ -3,6 +3,7 @@ import numpy as np
 from copy import deepcopy
 import matplotlib.pyplot as plt
 from tqdm.notebook import tqdm
+from dots.utils import is_tensor
 
 def test_trigger(n, step_n, step_range):
     if step_n == -1:
@@ -123,8 +124,13 @@ def property_storage_hook(
     plot_hint=None
 ):
     vals = []
+    def val_append(fn_of_obj):
+        if is_tensor(fn_of_obj):
+            vals.append(fn_of_obj.detach().cpu())
+        else:
+            vals.append(fn_of_obj)
     return TrainHook(
-        lambda obj : vals.append(fn(obj)),
+        lambda obj : val_append(fn(obj)),
         epochs,
         train_steps,
         storage = vals,
