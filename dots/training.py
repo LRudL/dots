@@ -29,7 +29,8 @@ class TrainHook:
                  epochs=1,
                  train_steps=1,
                  storage=None,
-                 name="[unnamed hook]"):
+                 name="[unnamed hook]",
+                 plot_hint=None):
         self.epochs = epochs
         self.train_steps = train_steps
         self.fn = fn
@@ -40,6 +41,7 @@ class TrainHook:
         self.trigger_xs = []
         self.prior_epochs = 0
         self.prior_steps = 0
+        self.plot_hint = plot_hint
     
     def will_trigger(self, epoch, step, total_epochs, total_steps):
         right_epoch = test_trigger(epoch, self.epochs, total_epochs)
@@ -113,14 +115,21 @@ def wrap_train_with_hooks(add_hooks):
         model, optimiser, loss_fn, dataloader, epochs, hooks = add_hooks + hooks 
     )
 
-def property_storage_hook(fn, epochs=1, train_steps=1, name=None):
+def property_storage_hook(
+    fn,
+    epochs=1,
+    train_steps=1,
+    name=None,
+    plot_hint=None
+):
     vals = []
     return TrainHook(
         lambda obj : vals.append(fn(obj)),
         epochs,
         train_steps,
         storage = vals,
-        name = name
+        name = name,
+        plot_hint = plot_hint
     )
 
 train_loss_hook = lambda epochs=1, train_steps=1 : property_storage_hook(
@@ -160,6 +169,22 @@ def test_loss_hook(test_dataloader, epochs=1, train_steps=-1):
         train_steps,
         name="loss, test"
     )
+
+jacobian_matrix_hook = lambda x, epochs=1, train_steps=-1 : property_storage_hook(
+    lambda obj : obj["model"].matrix_jacobian(x),
+    epochs,
+    train_steps,
+    name=f"Jacobians, w/ n={x.shape[0]}",
+    plot_hint = "image"
+)
+
+parameter_importances_hook = lambda x, epochs=1, train_steps=-1 : property_storage_hook(
+    lambda obj : obj["model"].jacobian_parameter_importances(x),
+    epochs,
+    train_steps,
+    name=f"Parameter importances, w/ n={x.shape[0]}",
+    plot_hint = "multiline"
+)
 
 def train_and_return_losses(
     model,
@@ -249,23 +274,53 @@ class TrainState():
         hook_groups = {}
         for hook in self.hooks:
             split = hook.name.split(", ")
-            if len(split) == 0:
-                assert split[0] not in hook_groups.keys(), "Hook name clash!"
-                hook_groups[split[0]] = {"name": "", "data": [
-                    {
-                        "name": split[0],
+            if hook.plot_hint == None:
+                # Then we expect hook.storage to contain a straightforward
+                # list of numbers
+                if len(split) == 0:
+                    assert split[0] not in hook_groups.keys(), "Hook name clash!"
+                    hook_groups[split[0]] = {
+                        "name": "",
+                        "plot": "default",
+                        "data": [
+                            {
+                                "name": split[0],
+                                "x": np.array(hook.trigger_xs) / self.epoch_size,
+                                "y": np.array(hook.storage)
+                            }
+                        ]}
+                else:
+                    if split[0] not in hook_groups.keys():
+                        hook_groups[split[0]] = {
+                            "name": split[0],
+                            "plot": "default",
+                            "data": []
+                        }
+                    hook_groups[split[0]]["data"].append({
+                        "name": split[1],
                         "x": np.array(hook.trigger_xs) / self.epoch_size,
                         "y": np.array(hook.storage)
+                    })
+            elif hook.plot_hint == "image":
+                # Then we expect hook.storage to contain 2D arrays / tensors
+                hook_groups[hook.name] = {
+                    "name": hook.name,
+                    "plot": "image",
+                    "data": hook.storage
+                }
+            elif hook.plot_hint == "multiline":
+                # Then we expect hook.storage to contain, for each x,
+                # a vector of values that at index i contains the next timestep
+                # in some line that we want to plot across timesteps.
+                lines = t.stack(hook.storage, dim=0)
+                hook_groups[hook.name] = {
+                    "name": hook.name,
+                    "plot": "multiline",
+                    "data": {
+                        "lines" : lines,
+                        "x": np.array(hook.trigger_xs) / self.epoch_size
                     }
-                ]}
-            else:
-                if split[0] not in hook_groups.keys():
-                    hook_groups[split[0]] = {"name": split[0], "data": []}
-                hook_groups[split[0]]["data"].append({
-                    "name": split[1],
-                    "x": np.array(hook.trigger_xs) / self.epoch_size,
-                    "y": np.array(hook.storage)
-                })
+                }
         return hook_groups
     
     def plot(self, fig_size = (9, 5)):
@@ -278,11 +333,20 @@ class TrainState():
         if num_groups == 1:
             axs = [axs]
         for i, (gname, group) in enumerate(hook_groups.items()):
-            # one plot for each group
-            for datum in group["data"]:
-                axs[i].plot(datum["x"], datum["y"], label=datum["name"])
-            axs[i].set_title(gname)
-            axs[i].set_xlabel("epoch")
-            axs[i].legend()
-            if gname == "loss":
+            if group["plot"] == "default":
+                # one plot for each group
+                for datum in group["data"]:
+                    axs[i].plot(datum["x"], datum["y"], label=datum["name"])
+                axs[i].set_title(gname)
+                axs[i].set_xlabel("epoch")
+                axs[i].legend()
+                if gname == "loss":
+                    axs[i].set_yscale("log")
+            elif group["plot"] == "multiline":
+                axs[i].set_title(group["name"])
+                axs[i].set_xlabel("epoch")
                 axs[i].set_yscale("log")
+                axs[i].plot(group["data"]["x"], group["data"]["lines"], color="black", alpha=0.2)
+        fig.show()
+        
+        
