@@ -15,9 +15,10 @@ class MLP(JModule):
         super().__init__()
         self.in_size = in_size
         self.out_size = out_size
-        if hidden_size == None:
+        if hidden_size == None and isinstance(hidden, int):
             hidden_size = in_size
-        sizes = [in_size] + [hidden_size for _ in range(hidden)] + [out_size]
+        hidden_sizes_vect = [hidden_size for _ in range(hidden)] if isinstance(hidden, int) else hidden
+        sizes = [in_size] + hidden_sizes_vect + [out_size]
         layers = flatten(
             [[t.nn.Linear(sizes[i], sizes[i+1], bias=bias), nonlinearity()]
              for i in range(len(sizes)-2)]) + [t.nn.Linear(sizes[-2], sizes[-1], bias=bias)]

@@ -27,12 +27,16 @@ def jacobian_matrix_rank(model, inputs):
 def jacobian_singular_values(model, inputs):
     return t.linalg.svd(matrix_jacobian(model, inputs)).S
 
-def singular_value_rank(model, inputs, method="entropy"):
+def singular_value_rank(model, inputs, method="entropy", **kwargs):
     if method=="entropy":
         return t.exp(entropy(jacobian_singular_values(model, inputs)))
     elif method=="heuristic":
         svs = jacobian_singular_values(model, inputs)
         # we create an array containing the sums of all values after that index:
+        c = 1
+        if "c" in kwargs.keys():
+            c = kwargs["c"]
+        # TODO: ADD C
         cumsums = t.flip(
             t.cumsum(
                 t.flip(svs, dims=[0]),
@@ -45,6 +49,7 @@ def singular_value_rank(model, inputs, method="entropy"):
         # (+1 because of 0-indexing)
         return t.argmax(((svs - cumsums) > 0).float()).item() + 1
     else:
+        # TODO: SVs that add up to e.g. 95% of the total
         raise Exception(
             f"singular_value_rank does not implement method: {method}")
 
