@@ -2,6 +2,9 @@
 notebooks/data
 data
 
+# all wandb folders:
+**/wandb/
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
