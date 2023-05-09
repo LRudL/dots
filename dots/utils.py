@@ -17,6 +17,18 @@ def entropy(x, base=math.e):
 def get_device():
     return t.device("cuda" if t.cuda.is_available() else "cpu")
 
+def range_batch(start, end, n, move_to_device=True):
+    if not isinstance(start, t.Tensor):
+        start = t.tensor([start])
+        end = t.tensor([end])
+    tensor = t.rand((n, len(start.shape))) * (end - start) + start
+    if move_to_device == True:
+        return tensor.to(get_device())
+    elif move_to_device == False:
+        return tensor
+    else:
+        return tensor.to(move_to_device)
+
 def random_batch(n, shape, move_to_device=True):
     if isinstance(shape, int):
         shape = (shape,)
