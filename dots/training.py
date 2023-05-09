@@ -112,11 +112,15 @@ class TrainState():
         default_hooks = []
         if add_test_train_hooks:
             train_hook = train_loss_hook(1, 1)
-            test_hook = test_loss_hook(
-                test_loader,
-                train_steps = -1
-            )
-            default_hooks += [train_hook, test_hook]
+            default_hooks += [train_hook]
+            if test_loader is not None:
+                test_hook = test_loss_hook(
+                    test_loader,
+                    train_steps = -1
+                )
+                default_hooks += [test_hook]
+            else:
+                print("Warning: no test loader provided, omitting test loss hook.")
         self.hooks = hooks + default_hooks
         
         self.epochs = 0
@@ -124,7 +128,7 @@ class TrainState():
         self.epoch_size = len(self.dataloader)
         
         self.checkpoints = []
-
+        
         self.wandb = wandb
     
     def checkpoint(self):
@@ -224,9 +228,3 @@ class TrainState():
                 axs[i].set_yscale("log")
                 axs[i].plot(group["data"]["x"], group["data"]["lines"], color="black", alpha=0.2)
         fig.show()
-        
-def run_experiment(
-    config,
-    wandb = None
-):
-   return None  

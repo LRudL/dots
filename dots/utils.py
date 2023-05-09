@@ -2,6 +2,7 @@ import torch as t
 import math
 import matplotlib.pyplot as plt
 import numpy as np
+from einops import rearrange
 
 flatten = lambda l : [item for sl in l for item in sl]
 
@@ -39,6 +40,13 @@ def random_batch(n, shape, move_to_device=True):
         return tensor
     else:
         return tensor.to(move_to_device)
+
+def plot_1d_fn(fn, start=-1, end=1, n=100):
+    x = t.linspace(start, end, n)
+    x = rearrange(x, "n -> n 1")
+    y = fn(x).detach().cpu().numpy()
+    plt.plot(x, y)
+    plt.show()
 
 def plot_dots_stats(model, inputs):
     dots_getters = [
