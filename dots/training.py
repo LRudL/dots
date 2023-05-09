@@ -3,6 +3,7 @@ import numpy as np
 from copy import deepcopy
 import matplotlib.pyplot as plt
 from tqdm.notebook import tqdm
+from dots.utils import is_tensor, get_device
 
 def test_trigger(n, step_n, step_range):
     if step_n == -1:
@@ -83,10 +84,14 @@ def train(
     hooks = [],
     progress_bars = True
 ):
+    device = get_device()
     total_steps = len(dataloader)
     epoch_iterator = tqdm(range(epochs)) if progress_bars else range(epochs)
     for epoch_n in epoch_iterator:
         for i, (x, y) in enumerate(dataloader):
+            x = x.to(device)
+            y = y.to(device)
+
             optimiser.zero_grad()
             yhat = model(x)
             loss = loss_fn(yhat, y)
@@ -123,8 +128,13 @@ def property_storage_hook(
     plot_hint=None
 ):
     vals = []
+    def val_append(fn_of_obj):
+        if is_tensor(fn_of_obj):
+            vals.append(fn_of_obj.detach().cpu())
+        else:
+            vals.append(fn_of_obj)
     return TrainHook(
-        lambda obj : vals.append(fn(obj)),
+        lambda obj : val_append(fn(obj)),
         epochs,
         train_steps,
         storage = vals,
@@ -154,10 +164,13 @@ sv_rank_hook = lambda x, epochs=1, train_steps=-1 : property_storage_hook(
 )
 
 def test_loss_hook(test_dataloader, epochs=1, train_steps=-1):
+    device = get_device()
     def get_test_loss(obj):
         total_items = 0
         loss_times_items = 0
         for (x, y) in test_dataloader:
+            x = x.to(device)
+            y = y.to(device)
             predicted_y = obj["model"](x)
             loss = obj["loss_fn"]
             loss_times_items += loss(predicted_y, y).item() * x.shape[0]
@@ -168,6 +181,26 @@ def test_loss_hook(test_dataloader, epochs=1, train_steps=-1):
         epochs,
         train_steps,
         name="loss, test"
+    )
+
+def accuracy_hook(test_dataloader, epochs=1, train_steps=-1):
+    device = get_device()
+    def get_acc(obj):
+        total_items = 0
+        correct_items = 0
+        for (x, y) in test_dataloader:
+            x = x.to(device)
+            y = y.to(device)
+            out = obj["model"](x).argmax(dim=-1)
+            total_items += out.shape[0]
+            correct = (out == y).sum()
+            correct_items += correct
+        return correct_items / total_items
+    return property_storage_hook(
+        get_acc,
+        epochs,
+        train_steps,
+        name="accuracy, test"
     )
 
 jacobian_matrix_hook = lambda x, epochs=1, train_steps=-1 : property_storage_hook(

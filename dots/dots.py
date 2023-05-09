@@ -33,9 +33,9 @@ def singular_value_rank(model, inputs, method="entropy", **kwargs):
     elif method=="heuristic":
         svs = jacobian_singular_values(model, inputs)
         # we create an array containing the sums of all values after that index:
-        c = 1
-        if "c" in kwargs.keys():
-            c = kwargs["c"]
+        #c = 1
+        #if "c" in kwargs.keys():
+        #    c = kwargs["c"]
         # TODO: ADD C
         cumsums = t.flip(
             t.cumsum(
