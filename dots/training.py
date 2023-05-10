@@ -13,7 +13,7 @@ def train(
     dataloader,
     epochs,
     hooks = [],
-    progress_bars = True,
+    progress_bars = False,
     wandb = None
 ):
     device = get_device()

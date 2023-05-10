@@ -1,7 +1,5 @@
 import torch as t
 import torch.utils.data as tdata
-import torchvision
-import torchvision.transforms as transforms
 from dots.utils import range_batch
 
 N_DEFAULT = 1000
@@ -19,6 +17,8 @@ def algorithmic_dataset(fn, start=-1, end=1, N=N_DEFAULT, seed=SEED_DEFAULT):
 def get_dataset(name):
     match name:
         case "mnist":
+            import torchvision
+            import torchvision.transforms as transforms
             mnist = torchvision.datasets.MNIST(
                 root='./data',
                 train=True,

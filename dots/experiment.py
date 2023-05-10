@@ -36,21 +36,54 @@ def get_loss_fn(name):
         case _:
             raise ValueError(f"Unknown loss function name: {name}")
 
+def get_subargs_config(argprefix, config):
+    subargs = {}
+    for key in config.keys():
+        if key.startswith(argprefix):
+            subargs[key[len(argprefix):]] = config[key]
+    return subargs
+
+def process_config(config):
+    def value_of_key(key):
+        val = config[key]
+        if isinstance(val, str):
+            if val[0] == "[" and val[-1] == "]":
+                print(f"Warning: coerced string '{val}' to list")
+                val = eval(val) 
+            else:
+                try:
+                    val = int(val)
+                except:
+                    try:
+                        val = float(val)
+                    except ValueError:
+                        pass
+        return val
+    return {
+        key : value_of_key(key)
+        for key in config
+    }
+
 def run_experiment(
     given_config
 ):
     with wandb.init(project="DOTS", config=given_config):
-        config = wandb.config
+        config = process_config(wandb.config.as_dict())
         
         # datasets have their own manual seeding, so do this first:
-        dataset = get_dataset(config["dataset"]["name"])
+        dataset = get_dataset(config["dataset_name"])
+        split_fracs = [
+            config["dataset_train_frac"],
+            config["dataset_test_frac"],
+            config["dataset_val_frac"]
+        ]
         dataset_split_sizes = [
             int(frac * len(dataset)) 
-            for frac in config["dataset"]["train_test_val_split"]
+            for frac in split_fracs
         ]
         
         if config.get("seed") is not None:
-            t.manual_seed(config.seed)
+            t.manual_seed(config["seed"])
         
         # want dataset shuffle to be done after seeding:
         train_ds, test_ds, val_ds = tdata.random_split(
@@ -59,29 +92,31 @@ def run_experiment(
         )
         train_dataloader = tdata.DataLoader(
             train_ds,
-            batch_size=config["hp"]["batch_size"],
+            batch_size=config["hp_batch_size"],
             shuffle=True
         )
         test_dataloader = tdata.DataLoader(
             test_ds,
-            batch_size=config["hp"]["batch_size"],
+            batch_size=config["hp_batch_size"],
             shuffle=True
         )
         val_dataloader = tdata.DataLoader(
             val_ds,
-            batch_size=config["hp"]["batch_size"],
+            batch_size=config["hp_batch_size"],
             shuffle=True
         )
         
         device = get_device()
-        model = get_model(config["model_class"])(**config["model"])
+        model_config = get_subargs_config("modelarg_", config)
+        model = get_model(config["model_class"])(**model_config)
         model.to(device)
         
-        optimiser = get_optimiser(config["hp"]["optimiser"])(
+        opt_config = get_subargs_config("hp_optarg_", config)
+        optimiser = get_optimiser(config["hp_opt_name"])(
             model.parameters(),
-            **config["hp"]["optimiser_args"]
+            **opt_config
         )
-        loss_fn = get_loss_fn(config["hp"]["loss_fn"])()
+        loss_fn = get_loss_fn(config["loss_fn"])()
         
         train_state = TrainState(
             model,
@@ -95,7 +130,7 @@ def run_experiment(
             wandb = wandb
         )
         
-        train_state.train(epochs=config["hp"]["epochs"])
+        train_state.train(epochs=config["hp_epochs"])
         
         train_state.validation_loss() 
         # ^this will also log the validation loss in wandb 

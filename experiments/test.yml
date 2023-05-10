@@ -1,0 +1,39 @@
+program: run.py
+method: random
+metric:
+  name: test_loss
+  goal: minimize
+parameters:
+  seed:
+    value: 0
+  model_class: 
+    value: MLP
+  modelarg_in_size:
+    value: 1
+  modelarg_hidden: 
+    value: "[10]"
+  modelarg_out_size: 
+    value: 1
+  modelarg_bias: 
+    value: true
+  dataset_name: 
+    value: relu
+  dataset_train_frac:
+    value: 0.8
+  dataset_test_frac:
+    value: 0.1
+  dataset_val_frac:
+    value: 0.1
+  loss_fn:
+    value: MSELoss
+  hp_opt_name:
+    value: Adam
+  hp_optarg_lr:
+    values:
+      - 0.001
+      - 0.01
+      - 0.1
+  hp_epochs:
+    value: 10
+  hp_batch_size:
+    value: 16

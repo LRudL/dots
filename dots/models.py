@@ -1,6 +1,7 @@
 from dots.dots import JModule
 from dots.utils import flatten, get_device
 import torch as t
+from collections.abc import Sequence
 
 class MLP(JModule):
     def __init__(
@@ -18,6 +19,7 @@ class MLP(JModule):
         if hidden_size == None and isinstance(hidden, int):
             hidden_size = in_size
         hidden_sizes_vect = [hidden_size for _ in range(hidden)] if isinstance(hidden, int) else hidden
+        assert isinstance(hidden_sizes_vect, Sequence), f"hidden must be a list or tuple, was {type(hidden)}: {hidden}"
         sizes = [in_size] + hidden_sizes_vect + [out_size]
         layers = flatten(
             [[t.nn.Linear(sizes[i], sizes[i+1], bias=bias), nonlinearity()]
