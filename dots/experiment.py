@@ -37,64 +37,71 @@ def get_loss_fn(name):
             raise ValueError(f"Unknown loss function name: {name}")
 
 def run_experiment(
-    config,
-    wandb = None
+    given_config
 ):
-    # datasets have their own manual seeding, so do this first:
-    dataset = get_dataset(config["dataset"]["name"])
-    dataset_split_sizes = [
-        int(frac * len(dataset)) 
-        for frac in config["dataset"]["train_test_val_split"]
-    ]
-    
-    if config.get("seed") is not None:
-        t.manual_seed(config.seed)
-    
-    # want dataset shuffle to be done after seeding:
-    train_ds, test_ds, valid_ds = tdata.random_split(
-        dataset, 
-        lengths = dataset_split_sizes
-    )
-    train_dataloader = tdata.DataLoader(
-        train_ds,
-        batch_size=config["hp"]["batch_size"],
-        shuffle=True
-    )
-    test_dataloader = tdata.DataLoader(
-        test_ds,
-        batch_size=config["hp"]["batch_size"],
-        shuffle=True
-    )
-    valid_dataloader = tdata.DataLoader(
-        valid_ds,
-        batch_size=config["hp"]["batch_size"],
-        shuffle=True
-    )
-    
-    device = get_device()
-    model = get_model(config["model_class"])(**config["model"])
-    model.to(device)
-    
-    optimiser = get_optimiser(config["hp"]["optimiser"])(
-        model.parameters(),
-        **config["hp"]["optimiser_args"]
-    )
-    loss_fn = get_loss_fn(config["hp"]["loss_fn"])()
-    
-    train_state = TrainState(
-        model,
-        optimiser,
-        loss_fn,
-        train_dataloader,
-        test_dataloader,
-        hooks = [],
-        add_test_train_hooks = True,
-        wandb = wandb
-    )
-    
-    train_state.train(epochs=config["hp"]["epochs"])
-    
-    if wandb is not None:
-        wandb.finish()
-    
-    return train_state
+    with wandb.init(project="DOTS", config=given_config):
+        config = wandb.config
+        
+        # datasets have their own manual seeding, so do this first:
+        dataset = get_dataset(config["dataset"]["name"])
+        dataset_split_sizes = [
+            int(frac * len(dataset)) 
+            for frac in config["dataset"]["train_test_val_split"]
+        ]
+        
+        if config.get("seed") is not None:
+            t.manual_seed(config.seed)
+        
+        # want dataset shuffle to be done after seeding:
+        train_ds, test_ds, val_ds = tdata.random_split(
+            dataset, 
+            lengths = dataset_split_sizes
+        )
+        train_dataloader = tdata.DataLoader(
+            train_ds,
+            batch_size=config["hp"]["batch_size"],
+            shuffle=True
+        )
+        test_dataloader = tdata.DataLoader(
+            test_ds,
+            batch_size=config["hp"]["batch_size"],
+            shuffle=True
+        )
+        val_dataloader = tdata.DataLoader(
+            val_ds,
+            batch_size=config["hp"]["batch_size"],
+            shuffle=True
+        )
+        
+        device = get_device()
+        model = get_model(config["model_class"])(**config["model"])
+        model.to(device)
+        
+        optimiser = get_optimiser(config["hp"]["optimiser"])(
+            model.parameters(),
+            **config["hp"]["optimiser_args"]
+        )
+        loss_fn = get_loss_fn(config["hp"]["loss_fn"])()
+        
+        train_state = TrainState(
+            model,
+            optimiser,
+            loss_fn,
+            train_dataloader,
+            test_dataloader,
+            val_dataloader,
+            hooks = [],
+            add_test_train_hooks = True,
+            wandb = wandb
+        )
+        
+        train_state.train(epochs=config["hp"]["epochs"])
+        
+        train_state.validation_loss() 
+        # ^this will also log the validation loss in wandb 
+        
+        return train_state
+
+def run_sweep(config, sweep_config):
+    sweep_id = wandb.sweep(sweep_config, project="DOTS")
+    wandb.agent(sweep_id, function = lambda  : run_experiment(wandb.config))

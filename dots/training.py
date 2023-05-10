@@ -33,6 +33,7 @@ def train(
             obj = {
                 "epoch": epoch_n,
                 "step": i,
+                "step_overall": epoch_n * total_steps + i,
                 "total_epochs": epochs,
                 "total_steps": total_steps,
                 "model": model,
@@ -47,11 +48,13 @@ def train(
             for hook in hooks:
                 hook.run(obj)
             if wandb is not None:
-                wandb.log({
-                    "train_loss": loss.item(),
-                    "epoch": epoch_n,
-                    "step": epoch_n * total_steps + i
-                })
+                wandb.log(
+                    {
+                        "train_loss": loss.item(),
+                        "epoch": epoch_n
+                    },
+                    step = epoch_n * total_steps + i
+                )
 
 def wrap_train_with_hooks(add_hooks):
     return lambda model, optimiser, loss_fn, dataloader, epochs, hooks : train(
@@ -99,6 +102,7 @@ class TrainState():
         loss_fn,
         dataloader,
         test_loader = None,
+        val_loader = None,
         hooks = [],
         add_test_train_hooks = True,
         wandb = None
@@ -108,6 +112,7 @@ class TrainState():
         self.loss_fn = loss_fn
         self.dataloader = dataloader
         self.test_loader = test_loader
+        self.val_loader = val_loader
         
         default_hooks = []
         if add_test_train_hooks:
@@ -116,7 +121,8 @@ class TrainState():
             if test_loader is not None:
                 test_hook = test_loss_hook(
                     test_loader,
-                    train_steps = -1
+                    train_steps = -1,
+                    wandb=wandb
                 )
                 default_hooks += [test_hook]
             else:
@@ -149,6 +155,26 @@ class TrainState():
             hook.increment_counters(epochs, epochs*len(self.dataloader))
         if checkpoint:
             self.checkpoint()
+    
+    def validation_loss(self):
+        if self.val_loader is None:
+            raise ValueError("No validation loader provided.") 
+        total_items = 0
+        loss_times_items = 0
+        for (x, y) in self.val_loader:
+            x = x.to(get_device())
+            y = y.to(get_device())
+            predicted_y = self.model(x)
+            loss_times_items += self.loss_fn(predicted_y, y).item() * x.shape[0]
+            total_items += x.shape[0]
+        val_loss = loss_times_items / total_items
+        if self.wandb is not None:
+            self.wandb.log(
+                {"val_loss" : val_loss},
+                step=self.steps
+            )
+        return val_loss
+ 
     
     def hook_data(self):
         hook_groups = {}

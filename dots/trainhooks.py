@@ -118,7 +118,7 @@ sv_rank_hook = lambda x, epochs=1, train_steps=-1 : property_storage_hook(
     name=f"DOTS, sv rank w/ n={x.shape[0]}"
 )
 
-def test_loss_hook(test_dataloader, epochs=1, train_steps=-1):
+def test_loss_hook(test_dataloader, epochs=1, train_steps=-1, wandb=None):
     device = get_device()
     def get_test_loss(obj):
         total_items = 0
@@ -130,7 +130,13 @@ def test_loss_hook(test_dataloader, epochs=1, train_steps=-1):
             loss = obj["loss_fn"]
             loss_times_items += loss(predicted_y, y).item() * x.shape[0]
             total_items += x.shape[0]
-        return loss_times_items / total_items
+        test_loss = loss_times_items / total_items
+        if wandb is not None:
+            wandb.log(
+                {"test_loss" : test_loss},
+                step=obj["step_overall"]
+            )
+        return test_loss
     return property_storage_hook(
         get_test_loss,
         epochs,
@@ -138,7 +144,7 @@ def test_loss_hook(test_dataloader, epochs=1, train_steps=-1):
         name="loss, test"
     )
 
-def accuracy_hook(test_dataloader, epochs=1, train_steps=-1):
+def accuracy_hook(test_dataloader, epochs=1, train_steps=-1, wandb=None):
     device = get_device()
     def get_acc(obj):
         total_items = 0
@@ -150,7 +156,13 @@ def accuracy_hook(test_dataloader, epochs=1, train_steps=-1):
             total_items += out.shape[0]
             correct = (out == y).sum()
             correct_items += correct
-        return correct_items / total_items
+        acc = correct_items / total_items
+        if wandb is not None:
+            wandb.log(
+                {"accuracy" : acc},
+                step=obj["step_overall"]
+            )
+        return acc 
     return property_storage_hook(
         get_acc,
         epochs,
