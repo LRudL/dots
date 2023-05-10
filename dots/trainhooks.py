@@ -168,7 +168,7 @@ def accuracy_hook(test_dataloader, epochs=1, train_steps=-1, wandb=None):
         get_acc,
         epochs,
         train_steps,
-        name="accuracy, test",
+        name="accuracy, test_acc",
         wandb=wandb
     )
 

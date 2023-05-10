@@ -1,7 +1,7 @@
 program: run.py
 method: random
 metric:
-  name: test_loss
+  name: test_acc
   goal: minimize
 parameters:
   seed:
@@ -44,3 +44,5 @@ parameters:
     value: "[4, 16, 64]"
   log_datadots:
     value: "[4, 16, 64]"
+  log_accuracy:
+    value: True
