@@ -23,7 +23,7 @@ def range_batch(start, end, n, move_to_device=True):
     if not isinstance(start, t.Tensor):
         start = t.tensor([start])
         end = t.tensor([end])
-    tensor = t.rand((n, len(start.shape))) * (end - start) + start
+    tensor = t.rand((n,) + start.shape) * (end - start) + start
     if move_to_device == True:
         return tensor.to(get_device())
     elif move_to_device == False:

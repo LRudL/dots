@@ -74,7 +74,7 @@ class MNIST_MLP(MLP):
 class BasicCNN(JModule):
     def __init__(
         self,
-        in_size = (28, 28), # MNIST
+        in_size = (1, 28, 28), # MNIST
         **kwargs
     ):
         # currently hard_coded to work only with MNIST sizes
