@@ -141,6 +141,7 @@ def test_loss_hook(test_dataloader, epochs=1, train_steps=-1, wandb=None):
             loss_times_items += loss(predicted_y, y).item() * x.shape[0]
             total_items += x.shape[0]
         test_loss = loss_times_items / total_items
+        return test_loss
     return property_storage_hook(
         get_test_loss,
         epochs,
