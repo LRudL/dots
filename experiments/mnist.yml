@@ -1,5 +1,5 @@
 program: run.py
-method: grid
+method: random
 metric:
   name: test_loss
   goal: minimize
@@ -7,19 +7,19 @@ parameters:
   seed:
     value: 0
   model_class: 
-    value: MLP
-  modelarg_in_size:
-    value: 1
+    values:
+      - MNIST_MLP
+      - BasicCNN
   modelarg_hidden: 
     values:
       - "[10]"
-      - "[10, 10]"
-  modelarg_out_size: 
-    value: 1
-  modelarg_bias: 
-    value: true
+      - "[100]"
+      - "[1000]"
+      - "[10, 10, 10]"
+      - "[100, 100]"
+      - "[100, 100, 100]"
   dataset_name: 
-    value: relu
+    value: mnist
   dataset_train_frac:
     value: 0.8
   dataset_test_frac:
@@ -27,21 +27,20 @@ parameters:
   dataset_val_frac:
     value: 0.1
   loss_fn:
-    value: MSELoss
+    value: CrossEntropy
   hp_opt_name:
     value: Adam
   hp_optarg_lr:
-    values:
-      - 0.001
-      - 0.01
-      - 0.1
+    distribution: log_uniform
+    min: 0.0001
+    max: 0.1
   hp_epochs:
-    value: 30
+    value: 4
   hp_batch_size:
     values:
       - 16
       - 64
   log_dots:
-    value: "[32, 128, 512]"
+    value: "[4, 16, 64]"
   log_datadots:
-    value: "[32, 128, 512]"
+    value: "[4, 16, 64]"

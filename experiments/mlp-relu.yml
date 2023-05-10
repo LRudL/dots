@@ -1,5 +1,5 @@
 program: run.py
-method: grid
+method: random
 metric:
   name: test_loss
   goal: minimize
@@ -13,7 +13,9 @@ parameters:
   modelarg_hidden: 
     values:
       - "[10]"
+      - "[100]"
       - "[10, 10]"
+      - "[5, 5, 5]"
   modelarg_out_size: 
     value: 1
   modelarg_bias: 

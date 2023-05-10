@@ -47,10 +47,35 @@ class DeepLinear(MLP):
             bias=bias
         )
 
+
+class MNIST_MLP(MLP):
+    def __init__(
+        self,
+        in_size = 784,
+        out_size = 10,
+        hidden = 0,
+        hidden_size = None,
+        nonlinearity = t.nn.ReLU,
+        bias = True
+    ):
+        super().__init__(
+            in_size,
+            out_size,
+            hidden,
+            hidden_size,
+            nonlinearity,
+            bias
+        )
+
+    def forward(self, x):
+        x = x.view(x.shape[0], -1)
+        return super().forward(x) 
+
 class BasicCNN(JModule):
     def __init__(
         self,
-        in_size = (28, 28) # MNIST
+        in_size = (28, 28), # MNIST
+        **kwargs
     ):
         # currently hard_coded to work only with MNIST sizes
         

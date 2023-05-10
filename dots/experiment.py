@@ -15,6 +15,8 @@ def get_model(name):
             return MLP
         case "DeepLinear":
             return DeepLinear
+        case "MNIST_MLP":
+            return MNIST_MLP
         case "BasicCNN":
             return BasicCNN
         case _:
