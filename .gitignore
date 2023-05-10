@@ -1,6 +1,7 @@
 # data downloaded by running notebooks:
 notebooks/data
 data
+models/*
 
 # all wandb folders:
 **/wandb/
