@@ -34,6 +34,12 @@ parameters:
       - 0.01
       - 0.1
   hp_epochs:
-    value: 10
+    value: 30
   hp_batch_size:
-    value: 16
+    values:
+      - 16
+      - 64
+  log_dots:
+    value: "[32, 128, 512]"
+  log_datadots:
+    value: "[32, 128, 512]"

@@ -38,7 +38,7 @@ def main():
             i += 2
 
     # Run the experiment with the provided configuration
-    run_experiment(config)
+    run_experiment(config, save_loc="models/")
 
 if __name__ == '__main__':
     main()

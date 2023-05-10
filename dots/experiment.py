@@ -1,10 +1,12 @@
+import os
 import wandb
 import torch as t
 import torch.utils.data as tdata
 from dots.training import train, TrainState
-from dots.utils import range_batch, get_device
+from dots.utils import range_batch, get_device, tensor_of_dataset
 from dots.datasets import get_dataset
 from dots.models import *
+from dots.trainhooks import jacobian_rank_hook
 
 
 def get_model(name):
@@ -65,8 +67,12 @@ def process_config(config):
     }
 
 def run_experiment(
-    given_config
+    given_config,
+    save_loc = "models/"
 ):
+    if save_loc is not None:
+        os.makedirs(save_loc, exist_ok=True)
+        
     with wandb.init(project="DOTS", config=given_config):
         config = process_config(wandb.config.as_dict())
         
@@ -118,6 +124,43 @@ def run_experiment(
         )
         loss_fn = get_loss_fn(config["loss_fn"])()
         
+        hooks = []
+        
+        if config.get("log_dots") is not None:
+            rand_data = [
+                range_batch(
+                    start=-t.ones(config["modelarg_in_size"]),
+                    end=t.ones(config["modelarg_in_size"]),
+                    n=rand_dots_size
+                )
+                for rand_dots_size in config["log_dots"]
+            ] 
+            for x in rand_data:
+                hooks.append(
+                    jacobian_rank_hook(
+                        x,
+                        epochs=1,
+                        name_extra="(rand)",
+                        wandb=wandb
+                    )
+                )
+        if config.get("log_datadots") is not None:
+            datas = [
+                tensor_of_dataset(dataset, range(0, data_dots_size)) 
+                for data_dots_size in config["log_datadots"]
+            ] 
+            if datas[-1].shape[-1] > dataset_split_sizes[0]:
+                print("WARNING: using test data for data-based DOTS")
+            for x in rand_data:
+                hooks.append(
+                    jacobian_rank_hook(
+                        x, 
+                        epochs=1, 
+                        name_extra="(data)", 
+                        wandb=wandb
+                    )
+                )
+        
         train_state = TrainState(
             model,
             optimiser,
@@ -125,7 +168,7 @@ def run_experiment(
             train_dataloader,
             test_dataloader,
             val_dataloader,
-            hooks = [],
+            hooks = hooks,
             add_test_train_hooks = True,
             wandb = wandb
         )
@@ -135,6 +178,8 @@ def run_experiment(
         train_state.validation_loss() 
         # ^this will also log the validation loss in wandb 
         
+        train_state.save_model(save_loc + wandb.run.name + ".pt")
+                
         return train_state
 
 def run_sweep(config, sweep_config):

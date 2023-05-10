@@ -47,14 +47,14 @@ def train(
             }
             for hook in hooks:
                 hook.run(obj)
-            if wandb is not None:
-                wandb.log(
-                    {
-                        "train_loss": loss.item(),
-                        "epoch": epoch_n
-                    },
-                    step = epoch_n * total_steps + i
-                )
+            #if wandb is not None:
+            #    wandb.log(
+            #        {
+            #            "train_loss": loss.item(),
+            #            "epoch": epoch_n
+            #        },
+            #        step = epoch_n * total_steps + i
+            #    )
 
 def wrap_train_with_hooks(add_hooks):
     return lambda model, optimiser, loss_fn, dataloader, epochs, hooks : train(
@@ -116,7 +116,7 @@ class TrainState():
         
         default_hooks = []
         if add_test_train_hooks:
-            train_hook = train_loss_hook(1, 1)
+            train_hook = train_loss_hook(1, 1, wandb=wandb)
             default_hooks += [train_hook]
             if test_loader is not None:
                 test_hook = test_loss_hook(
@@ -142,6 +142,9 @@ class TrainState():
         self.checkpoints.append(
             TrainCheckpoint(self.epochs, model_copy)
         )
+    
+    def save_model(self, path):
+        t.save(self.model, path)
     
     def train(self, epochs=1, checkpoint=False):
         train(model=self.model,

@@ -80,16 +80,23 @@ def property_storage_hook(
     epochs=1,
     train_steps=1,
     name=None,
-    plot_hint=None
+    plot_hint=None,
+    wandb=None
 ):
     vals = []
-    def val_append(fn_of_obj):
-        if is_tensor(fn_of_obj):
-            vals.append(fn_of_obj.detach().cpu())
-        else:
-            vals.append(fn_of_obj)
+    def val_append(fn, obj):
+        val = fn(obj)
+        if is_tensor(val):
+            val = val.detach().cpu()
+        if wandb is not None:
+            wandb_name = name if ", " not in name else name.split(", ")[1]
+            wandb.log(
+                {wandb_name : val},
+                step=obj["step_overall"]
+            )
+        vals.append(val)
     return TrainHook(
-        lambda obj : val_append(fn(obj)),
+        lambda obj : val_append(fn, obj),
         epochs,
         train_steps,
         storage = vals,
@@ -97,25 +104,28 @@ def property_storage_hook(
         plot_hint = plot_hint
     )
 
-train_loss_hook = lambda epochs=1, train_steps=1 : property_storage_hook(
+train_loss_hook = lambda epochs=1, train_steps=1, wandb=None : property_storage_hook(
     lambda obj : obj["train_loss"].item(),
     epochs,
     train_steps,
-    name="loss, train"
+    name="loss, train_loss",
+    wandb=wandb
 )
 
-jacobian_rank_hook = lambda x, epochs=1, train_steps=-1 : property_storage_hook(
+jacobian_rank_hook = lambda x, epochs=1, train_steps=-1, name_extra="", wandb=None : property_storage_hook(
     lambda obj : obj["model"].jacobian_matrix_rank(x),
     epochs,
     train_steps,
-    name=f"DOTS, Jacobian rank w/ n={x.shape[0]}"
+    name=f"DOTS, Jacobian rank w/ n={x.shape[0]}" + name_extra,
+    wandb=wandb
 )
 
-sv_rank_hook = lambda x, epochs=1, train_steps=-1 : property_storage_hook(
+sv_rank_hook = lambda x, epochs=1, train_steps=-1, wandb=None: property_storage_hook(
     lambda obj : obj["model"].singular_value_rank(x),
     epochs,
     train_steps,
-    name=f"DOTS, sv rank w/ n={x.shape[0]}"
+    name=f"DOTS, sv rank w/ n={x.shape[0]}",
+    wandb=wandb
 )
 
 def test_loss_hook(test_dataloader, epochs=1, train_steps=-1, wandb=None):
@@ -131,17 +141,12 @@ def test_loss_hook(test_dataloader, epochs=1, train_steps=-1, wandb=None):
             loss_times_items += loss(predicted_y, y).item() * x.shape[0]
             total_items += x.shape[0]
         test_loss = loss_times_items / total_items
-        if wandb is not None:
-            wandb.log(
-                {"test_loss" : test_loss},
-                step=obj["step_overall"]
-            )
-        return test_loss
     return property_storage_hook(
         get_test_loss,
         epochs,
         train_steps,
-        name="loss, test"
+        name="loss, test_loss",
+        wandb=wandb
     )
 
 def accuracy_hook(test_dataloader, epochs=1, train_steps=-1, wandb=None):
@@ -157,17 +162,13 @@ def accuracy_hook(test_dataloader, epochs=1, train_steps=-1, wandb=None):
             correct = (out == y).sum()
             correct_items += correct
         acc = correct_items / total_items
-        if wandb is not None:
-            wandb.log(
-                {"accuracy" : acc},
-                step=obj["step_overall"]
-            )
         return acc 
     return property_storage_hook(
         get_acc,
         epochs,
         train_steps,
-        name="accuracy, test"
+        name="accuracy, test",
+        wandb=wandb
     )
 
 jacobian_matrix_hook = lambda x, epochs=1, train_steps=-1 : property_storage_hook(

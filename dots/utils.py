@@ -1,4 +1,5 @@
 import torch as t
+import torch.utils.data as tdata
 import math
 import matplotlib.pyplot as plt
 import numpy as np
@@ -40,6 +41,13 @@ def random_batch(n, shape, move_to_device=True):
         return tensor
     else:
         return tensor.to(move_to_device)
+
+def tensor_of_dataset(dataset, indices=None):
+    if indices == None:
+        indices = range(len(dataset))
+    subset_ds = tdata.Subset(dataset, indices)
+    subset_dl = tdata.DataLoader(subset_ds, batch_size=len(subset_ds))
+    return next(iter(subset_dl))[0].to(get_device())
 
 def plot_1d_fn(fn, start=-1, end=1, n=100):
     x = t.linspace(start, end, n)
