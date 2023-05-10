@@ -80,6 +80,7 @@ class BasicCNN(JModule):
         # currently hard_coded to work only with MNIST sizes
         
         super().__init__()
+        self.in_size = in_size
         self.layers = t.nn.Sequential(
             t.nn.Conv2d(in_channels=1, out_channels=4, kernel_size=3, stride=1),
             t.nn.ReLU(),

@@ -127,12 +127,15 @@ def run_experiment(
         loss_fn = get_loss_fn(config["loss_fn"])()
         
         hooks = []
+
+        
+        real_in_size = model.in_size#config.get("modelarg_in_size", model.in_size)
         
         if config.get("log_dots") is not None:
             rand_data = [
                 range_batch(
-                    start=-t.ones(config["modelarg_in_size"]),
-                    end=t.ones(config["modelarg_in_size"]),
+                    start=-t.ones(real_in_size),
+                    end=t.ones(real_in_size),
                     n=rand_dots_size
                 )
                 for rand_dots_size in config["log_dots"]
