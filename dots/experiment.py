@@ -4,7 +4,7 @@ import torch as t
 import torch.utils.data as tdata
 from dots.training import train, TrainState
 from dots.utils import range_batch, get_device, tensor_of_dataset
-from dots.datasets import get_dataset, is_classification_dataset
+from dots.datasets import get_dataset
 from dots.models import *
 from dots.trainhooks import jacobian_rank_hook
 
