@@ -104,29 +104,32 @@ def property_storage_hook(
         plot_hint = plot_hint
     )
 
-train_loss_hook = lambda epochs=1, train_steps=1, wandb=None : property_storage_hook(
-    lambda obj : obj["train_loss"].item(),
-    epochs,
-    train_steps,
-    name="loss, train_loss",
-    wandb=wandb
-)
+def train_loss_hook(epochs=1, train_steps=1, wandb=None):
+    return property_storage_hook(
+        lambda obj : obj["train_loss"].item(),
+        epochs,
+        train_steps,
+        name="loss, train_loss",
+        wandb=wandb
+    )
 
-jacobian_rank_hook = lambda x, epochs=1, train_steps=-1, name_extra="", wandb=None : property_storage_hook(
-    lambda obj : obj["model"].jacobian_matrix_rank(x),
-    epochs,
-    train_steps,
-    name=f"DOTS, Jacobian rank w/ n={x.shape[0]}" + name_extra,
-    wandb=wandb
-)
+def jacobian_rank_hook(x, epochs=1, train_steps=-1, name_extra="", wandb=None):
+    return property_storage_hook(
+        lambda obj : obj["model"].jacobian_matrix_rank(x),
+        epochs,
+        train_steps,
+        name=f"DOTS, Jacobian rank w/ n={x.shape[0]}" + name_extra,
+        wandb=wandb
+    )
 
-sv_rank_hook = lambda x, epochs=1, train_steps=-1, wandb=None: property_storage_hook(
-    lambda obj : obj["model"].singular_value_rank(x),
-    epochs,
-    train_steps,
-    name=f"DOTS, sv rank w/ n={x.shape[0]}",
-    wandb=wandb
-)
+def sv_rank_hook(x, epochs=1, train_steps=-1, wandb=None):
+    return property_storage_hook(
+        lambda obj : obj["model"].singular_value_rank(x),
+        epochs,
+        train_steps,
+        name=f"DOTS, sv rank w/ n={x.shape[0]}",
+        wandb=wandb
+    )
 
 def test_loss_hook(test_dataloader, epochs=1, train_steps=-1, wandb=None):
     device = get_device()
@@ -172,21 +175,33 @@ def accuracy_hook(test_dataloader, epochs=1, train_steps=-1, wandb=None):
         wandb=wandb
     )
 
-jacobian_matrix_hook = lambda x, epochs=1, train_steps=-1 : property_storage_hook(
-    lambda obj : obj["model"].matrix_jacobian(x),
-    epochs,
-    train_steps,
-    name=f"Jacobians, w/ n={x.shape[0]}",
-    plot_hint = "image"
-)
+def jacobian_matrix_hook(x, epochs=1, train_steps=-1, wandb=None):
+    return property_storage_hook(
+        lambda obj : obj["model"].matrix_jacobian(x),
+        epochs,
+        train_steps,
+        name=f"Jacobians, w/ n={x.shape[0]}",
+        plot_hint = "image",
+        wandb=wandb
+    )
 
-parameter_importances_hook = lambda x, epochs=1, train_steps=-1 : property_storage_hook(
-    lambda obj : obj["model"].jacobian_parameter_importances(x),
-    epochs,
-    train_steps,
-    name=f"Parameter importances, w/ n={x.shape[0]}",
-    plot_hint = "multiline"
-)
+def parameter_importances_hook(x, epochs=1, train_steps=-1, wandb=None):
+    return property_storage_hook(
+        lambda obj : obj["model"].jacobian_parameter_importances(x),
+        epochs,
+        train_steps,
+        name=f"Parameter importances, w/ n={x.shape[0]}",
+        plot_hint = "multiline",
+        wandb=wandb
+    )
 
-
+def u_features_hook(x, epochs=1, train_steps=-1, wandb=None):
+    return property_storage_hook(
+        lambda obj : obj["model"].u_features(x),
+        epochs,
+        train_steps,
+        name=f"U features",
+        plot_hint = "multiline",
+        wandb=wandb
+    )
 

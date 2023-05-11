@@ -57,6 +57,14 @@ def jacobian_parameter_importances(model, inputs):
     jacobian = matrix_jacobian(model, inputs)
     return (jacobian ** 2).sum(dim=0)
 
+def u_features(model, inputs):
+    """Returns the N x R matrix of the U in the SVD decomposition
+    of the Jacobian of the model with respect to the parameters at
+    the inputs."""
+    return t.linalg.svd(
+        matrix_jacobian(model, inputs),
+        full_matrices=False
+    ).U
 
 class JModule(t.nn.Module):
     # To do Jacobians nicely, it is very convenient to have
@@ -108,6 +116,9 @@ class JModule(t.nn.Module):
     
     def jacobian_parameter_importances(self, inputs):
         return jacobian_parameter_importances(self, inputs)
+    
+    def u_features(self, inputs):
+        return u_features(self, inputs)
     
     
 

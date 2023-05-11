@@ -1,4 +1,5 @@
 import os
+import yaml
 import wandb
 import torch as t
 import torch.utils.data as tdata
@@ -48,6 +49,7 @@ def get_subargs_config(argprefix, config):
     return subargs
 
 def process_config(config):
+    # make sure this remains idempotent; in some cases it's called twice
     def value_of_key(key):
         val = config[key]
         if isinstance(val, str):
@@ -68,6 +70,121 @@ def process_config(config):
         for key in config
     }
 
+def parse_config(config, wandb=None):
+    config = process_config(config)
+    
+    # datasets have their own manual seeding, so do this first:
+    dataset = get_dataset(config["dataset_name"])
+    split_fracs = [
+        config["dataset_train_frac"],
+        config["dataset_test_frac"],
+        config["dataset_val_frac"]
+    ]
+    dataset_split_sizes = [
+        int(frac * len(dataset)) 
+        for frac in split_fracs
+    ]
+    
+    if config.get("seed") is not None:
+        t.manual_seed(config["seed"])
+    
+    # want dataset shuffle to be done after seeding:
+    train_ds, test_ds, val_ds = tdata.random_split(
+        dataset, 
+        lengths = dataset_split_sizes
+    )
+    train_dataloader = tdata.DataLoader(
+        train_ds,
+        batch_size=config["hp_batch_size"],
+        shuffle=True
+    )
+    test_dataloader = tdata.DataLoader(
+        test_ds,
+        batch_size=config["hp_batch_size"],
+        shuffle=True
+    )
+    val_dataloader = tdata.DataLoader(
+        val_ds,
+        batch_size=config["hp_batch_size"],
+        shuffle=True
+    )
+    
+    device = get_device()
+    model_config = get_subargs_config("modelarg_", config)
+    model = get_model(config["model_class"])(**model_config)
+    model.to(device)
+    
+    opt_config = get_subargs_config("hp_optarg_", config)
+    optimiser = get_optimiser(config["hp_opt_name"])(
+        model.parameters(),
+        **opt_config
+    )
+    loss_fn = get_loss_fn(config["loss_fn"])()
+    
+    hooks = []
+    
+    if config.get("log_accuracy") is not None:
+        hooks.append(accuracy_hook(test_dataloader, wandb=wandb))
+    
+    real_in_size = model.in_size#config.get("modelarg_in_size", model.in_size)
+    
+    if config.get("log_dots") is not None:
+        rand_data = [
+            range_batch(
+                start=-t.ones(real_in_size),
+                end=t.ones(real_in_size),
+                n=rand_dots_size
+            )
+            for rand_dots_size in config["log_dots"]
+        ] 
+        for x in rand_data:
+            hooks.append(
+                jacobian_rank_hook(
+                    x,
+                    epochs=1,
+                    name_extra="(rand)",
+                    wandb=wandb
+                )
+            )
+    if config.get("log_datadots") is not None:
+        datas = [
+            tensor_of_dataset(dataset, range(0, data_dots_size)) 
+            for data_dots_size in config["log_datadots"]
+        ] 
+        if datas[-1].shape[-1] > dataset_split_sizes[0]:
+            print("WARNING: using test data for data-based DOTS")
+        for x in rand_data:
+            hooks.append(
+                jacobian_rank_hook(
+                    x, 
+                    epochs=1, 
+                    name_extra="(data)", 
+                    wandb=wandb
+                )
+            )
+    
+    return {
+        "model" : model,
+        "optimiser" : optimiser,
+        "loss_fn" : loss_fn,
+        "train_dataloader" : train_dataloader,
+        "test_dataloader" : test_dataloader,
+        "val_dataloader" : val_dataloader,
+        "hooks" : hooks
+    }
+
+def get_train_state_from_config(config, **kwargs):
+    config = parse_config(config)
+    config.update(kwargs)
+    return TrainState(**config)
+
+def get_train_state(file_or_config, **kwargs):
+    if isinstance(file_or_config, str):
+        with open(file_or_config, "r") as f:
+            config = yaml.safe_load(f)
+            return get_train_state_from_config(config, **kwargs)
+    return get_train_state_from_config(file_or_config, **kwargs)
+
 def run_experiment(
     given_config,
     save_loc = "models/"
@@ -77,107 +194,10 @@ def run_experiment(
         
     with wandb.init(project="DOTS", config=given_config):
         config = process_config(wandb.config.as_dict())
-        
-        # datasets have their own manual seeding, so do this first:
-        dataset = get_dataset(config["dataset_name"])
-        split_fracs = [
-            config["dataset_train_frac"],
-            config["dataset_test_frac"],
-            config["dataset_val_frac"]
-        ]
-        dataset_split_sizes = [
-            int(frac * len(dataset)) 
-            for frac in split_fracs
-        ]
-        
-        if config.get("seed") is not None:
-            t.manual_seed(config["seed"])
-        
-        # want dataset shuffle to be done after seeding:
-        train_ds, test_ds, val_ds = tdata.random_split(
-            dataset, 
-            lengths = dataset_split_sizes
-        )
-        train_dataloader = tdata.DataLoader(
-            train_ds,
-            batch_size=config["hp_batch_size"],
-            shuffle=True
-        )
-        test_dataloader = tdata.DataLoader(
-            test_ds,
-            batch_size=config["hp_batch_size"],
-            shuffle=True
-        )
-        val_dataloader = tdata.DataLoader(
-            val_ds,
-            batch_size=config["hp_batch_size"],
-            shuffle=True
-        )
-        
-        device = get_device()
-        model_config = get_subargs_config("modelarg_", config)
-        model = get_model(config["model_class"])(**model_config)
-        model.to(device)
-        
-        opt_config = get_subargs_config("hp_optarg_", config)
-        optimiser = get_optimiser(config["hp_opt_name"])(
-            model.parameters(),
-            **opt_config
-        )
-        loss_fn = get_loss_fn(config["loss_fn"])()
-        
-        hooks = []
-
-        if config.get("log_accuracy") is not None:
-            hooks.append(accuracy_hook(test_dataloader, wandb=wandb))
-        
-        real_in_size = model.in_size#config.get("modelarg_in_size", model.in_size)
-        
-        if config.get("log_dots") is not None:
-            rand_data = [
-                range_batch(
-                    start=-t.ones(real_in_size),
-                    end=t.ones(real_in_size),
-                    n=rand_dots_size
-                )
-                for rand_dots_size in config["log_dots"]
-            ] 
-            for x in rand_data:
-                hooks.append(
-                    jacobian_rank_hook(
-                        x,
-                        epochs=1,
-                        name_extra="(rand)",
-                        wandb=wandb
-                    )
-                )
-        if config.get("log_datadots") is not None:
-            datas = [
-                tensor_of_dataset(dataset, range(0, data_dots_size)) 
-                for data_dots_size in config["log_datadots"]
-            ] 
-            if datas[-1].shape[-1] > dataset_split_sizes[0]:
-                print("WARNING: using test data for data-based DOTS")
-            for x in rand_data:
-                hooks.append(
-                    jacobian_rank_hook(
-                        x, 
-                        epochs=1, 
-                        name_extra="(data)", 
-                        wandb=wandb
-                    )
-                )
-        
-        train_state = TrainState(
-            model,
-            optimiser,
-            loss_fn,
-            train_dataloader,
-            test_dataloader,
-            val_dataloader,
-            hooks = hooks,
-            add_test_train_hooks = True,
-            wandb = wandb
+        train_state = get_train_state_from_config(
+            config,
+            wandb=wandb,
+            add_test_train_hooks=True
         )
         
         train_state.train(epochs=config["hp_epochs"])

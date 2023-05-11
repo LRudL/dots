@@ -56,6 +56,29 @@ def plot_1d_fn(fn, start=-1, end=1, n=100):
     plt.plot(x, y)
     plt.show()
 
+def plot_1d_u_feats(x, model):
+    x_sorted_indices = np.argsort(x.squeeze())  # Sort the indices of x in ascending order
+    x_sorted = x.squeeze()[x_sorted_indices]  # Sort the flattened x values
+    x_sorted_batch = rearrange(x_sorted, "n -> n 1")
+    U_T = model.u_features(x_sorted_batch).detach().cpu().numpy().T
+    # U now has size [rank, N] with x_sorted order;
+    # we want to plot each row of U as a function of x_sorted
+    fig, ax = plt.subplots()
+    singular_values = model.jacobian_singular_values(
+        x_sorted_batch
+    ).detach().cpu().numpy()
+    max_singular_value = singular_values.max()
+    for i in range(U_T.shape[0]):
+        U_T_sorted = U_T[i, x_sorted_indices]  # Sort U_T[i] according to x_sorted order
+        ax.plot(x_sorted, U_T_sorted, alpha=singular_values[i] / max_singular_value)
+    ax.plot(
+        x_sorted,
+        model(x_sorted_batch).detach().cpu().numpy(),
+        color="black",
+        linestyle="dotted"
+    )
+    ax.set_title("U features, with current function drawn in dotted black")
+
 def plot_dots_stats(model, inputs):
     dots_getters = [
         lambda m, x : m.jacobian_matrix_rank(x),

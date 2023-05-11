@@ -100,9 +100,9 @@ class TrainState():
         model,
         optimiser,
         loss_fn,
-        dataloader,
-        test_loader = None,
-        val_loader = None,
+        train_dataloader,
+        test_dataloader = None,
+        val_dataloader = None,
         hooks = [],
         add_test_train_hooks = True,
         wandb = None
@@ -110,17 +110,17 @@ class TrainState():
         self.model = model
         self.optimiser = optimiser
         self.loss_fn = loss_fn
-        self.dataloader = dataloader
-        self.test_loader = test_loader
-        self.val_loader = val_loader
+        self.dataloader = train_dataloader
+        self.test_loader = test_dataloader
+        self.val_loader = val_dataloader
         
         default_hooks = []
         if add_test_train_hooks:
             train_hook = train_loss_hook(1, 1, wandb=wandb)
             default_hooks += [train_hook]
-            if test_loader is not None:
+            if self.test_loader is not None:
                 test_hook = test_loss_hook(
-                    test_loader,
+                    self.test_loader,
                     train_steps = -1,
                     wandb=wandb
                 )
