@@ -177,7 +177,6 @@ class TrainState():
                 step=self.steps
             )
         return val_loss
- 
     
     def hook_data(self):
         hook_groups = {}
