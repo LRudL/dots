@@ -1,23 +1,37 @@
 from dots.utils import *
 import matplotlib.pyplot as plt
 
-
-def plot_1d_fn(fn, start=-1, end=1, n=100):
+def plot_1d_fn(fn, start=-1, end=1, n=1000, ax=None):
+    given_ax = ax
+    if given_ax is None:
+        fig, ax = plt.subplots()
     x = t.linspace(start, end, n)
     x = rearrange(x, "n -> n 1")
     y = fn(x).detach().cpu().numpy()
-    plt.plot(x, y)
-    plt.show()
+    ax.plot(x, y)
+    if given_ax is None:
+        fig.show()
 
+def plot_1d_fn_from_data(fn, x, ax=None):
+    given_ax = ax
+    if given_ax is None:
+        fig, ax = plt.subplots()
+    sorted_x = t.sort(x.squeeze())[0].unsqueeze(1)
+    y = fn(sorted_x).detach().cpu().numpy()
+    ax.scatter(sorted_x.squeeze(), y, s=1)
+    if given_ax is None:
+        fig.show()
 
-def plot_1d_u_feats(x, model):
+def plot_1d_u_feats(model, x, ax=None):
+    given_ax = ax
+    if given_ax is None:
+        fig, ax = plt.subplots()
     x_sorted_indices = np.argsort(x.squeeze())  # Sort the indices of x in ascending order
     x_sorted = x.squeeze()[x_sorted_indices]  # Sort the flattened x values
     x_sorted_batch = rearrange(x_sorted, "n -> n 1")
     U_T = model.u_features(x_sorted_batch).detach().cpu().numpy().T
     # U now has size [rank, N] with x_sorted order;
     # we want to plot each row of U as a function of x_sorted
-    fig, ax = plt.subplots()
     singular_values = model.jacobian_singular_values(
         x_sorted_batch
     ).detach().cpu().numpy()
@@ -28,27 +42,140 @@ def plot_1d_u_feats(x, model):
             x_sorted,
             U_T_sorted,
             alpha=max(0.05, math.sqrt(singular_values[i] / max_singular_value)))
-    ax2 = ax.twinx()
-    ax2.plot(
-        x_sorted,
-        model(x_sorted_batch).detach().cpu().numpy(),
-        color="black",
-        linestyle="dotted"
-    )
-    ax.set_title("U features, with current function drawn in dotted black")
-    fig.show()
+    #ax2 = ax.twinx()
+    #ax2.plot(
+    #    x_sorted,
+    #    model(x_sorted_batch).detach().cpu().numpy(),
+    #    color="black",
+    #    linestyle="dotted"
+    #)
+    #ax.set_title("U features, with current function drawn in dotted black")
+    ax.set_title("U features")
+    if given_ax is None:
+        fig.show()
 
-
-def plot_u_feats_img(start, end, n, model):
+def plot_u_feats_img(start, end, n, model, ax=None):
+    given_ax = ax
+    if given_ax is None:
+        fig, ax = plt.subplots()
     x = range_batch(start, end, n)    
     U_T = model.u_features(x).detach().cpu().numpy().T
     # U now has size [rank, N] with x_sorted order;
     fig, ax = plt.subplots(figsize=(8, 4))
     ax.imshow(U_T, cmap="gray", aspect='auto') 
+    if given_ax is None:
+        fig.show()
+
+
+def plot_dots_estimates(model, inputs, ax=None):
+    given_ax = ax
+    if given_ax is None:
+        fig, ax = plt.subplots()
+    dots_getters = [
+        lambda m, x : m.jacobian_matrix_rank(x),
+        lambda m, x : m.singular_value_rank(x, method="entropy"),
+        lambda m, x : m.singular_value_rank(x, method="heuristic"),
+        lambda m, x : min(
+            m.count_params(),
+            np.prod(np.array(x.shape))
+        )
+    ]
+    getter_names = [
+        "Jacobian rank",
+        "SV rank, heuristic threshold",
+        "SV rank, entropy",
+        "Maximum rank"
+    ]
+    # TODO write the numbers on the plot
+    # TODO log scale?
+    if isinstance(inputs, t.Tensor):
+        inputs = [inputs]
+    x = np.arange(len(inputs))
+    for i, (getter_name, getter) in enumerate(zip(getter_names, dots_getters)):
+        y = []
+        for input in inputs:
+            new = getter(model, input)
+            if is_tensor(new):
+                new = new.cpu()
+            y.append(new)
+        ax.bar(x - 0.2 + 0.2 * i, y, 0.2, label=getter_name)
+    ax.legend()
+    ax.set_xticks(x, [input.shape[0] for input in inputs])
+    ax.set_xlabel("Data points")
+ 
+def plot_singular_value_distribution(model, inputs, ax=None):
+    given_ax = ax
+    if given_ax is None:
+        fig, ax = plt.subplots()
+    if isinstance(inputs, t.Tensor):
+        inputs = [inputs]
+    for input in inputs:
+        ax.plot(
+            model.jacobian_singular_values(input).cpu(),
+            label=f"{input.shape[0]} data points"
+        )
+    ax.set_title("Singular value distribution")
+    ax.legend()
+    ax.set_yscale("log")
+    if given_ax is None:
+        fig.show()
+
+
+def plot_jacobian_img(model, x, ax=None, fig=None):
+    given_ax = ax
+    if given_ax is None:
+        fig, ax = plt.subplots()
+    matrix = model.matrix_jacobian(x).detach().cpu().numpy()
+    ax.imshow(matrix, aspect="auto")
+    ax.set_title(f"{matrix.shape[0]} outputs")
+    if fig is not None:
+        fig.colorbar(plt.cm.ScalarMappable(), ax=ax, orientation="horizontal")
+    if given_ax is None:
+        fig.show()
+
+
+def trainplot_1d_regression_over_axes(model, x, ax, fig):
+    # plot dots estimates:
+    plot_dots_estimates(model, x, ax[0])
+    
+    # plot singular value distribution:
+    plot_singular_value_distribution(model, x, ax[1])
+    
+    # plot the Jacobian:
+    plot_jacobian_img(model, x, ax[2], fig)
+    
+    # plot the function:
+    plot_1d_fn_from_data(model, x, ax[3])
+    
+    # plot the U features:
+    plot_1d_u_feats(model, x, ax[4])
+    
+
+def trainplot_1d(trainstate, x1=None, x2=None):
+    """Plots relevant information about the model at a particular point
+    during training. It is assumed the model is a 1D to 1D model where the
+    interesting stuff happens in the range [-1, 1]
+    If x1 and x2 are none, will plot statistics for x1 in the first column and
+    for a random range in the second.
+    If both are supplied, will plot both of them"""
+    model = trainstate.model
+    figsize = (8, 20)
+    if x2 == None and x1 is not None:
+        x2 = range_batch(-1, 1, 1000) 
+    if x1 == None:
+        x1 = range_batch(-1, 1, 1000) 
+        fig, axs = plt.subplots(5, 1, figsize=figsize)
+        trainplot_1d_regression_over_axes(model, x1, axs, fig)
+    fig, axs = plt.subplots(5, 2, figsize=figsize)
+    trainplot_1d_regression_over_axes(model, x1, axs[:, 0], fig)
+    trainplot_1d_regression_over_axes(model, x2, axs[:, 1], fig)
+    plt.tight_layout(pad=2.0)
+    plt.subplots_adjust(top=0.95)
+    fig.suptitle(f"Epoch {trainstate.epochs} step {trainstate.steps}")
     fig.show()
-
-
+   
 def plot_dots_stats(model, inputs):
+    # DEPRECATED
     dots_getters = [
         lambda m, x : m.jacobian_matrix_rank(x),
         lambda m, x : m.singular_value_rank(x, method="entropy"),

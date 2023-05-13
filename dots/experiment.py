@@ -70,11 +70,21 @@ def process_config(config):
         for key in config
     }
 
+def get_config_dataset(config_or_filename):
+    if isinstance(config_or_filename, str):
+        with open(config_or_filename, "r") as f:
+            config = yaml.safe_load(f)
+    else:
+        config = config_or_filename
+    config = process_config(config)
+    dataset = get_dataset(config["dataset_name"])
+    return dataset 
+
 def parse_config(config, wandb=None):
     config = process_config(config)
     
     # datasets have their own manual seeding, so do this first:
-    dataset = get_dataset(config["dataset_name"])
+    dataset = get_config_dataset(config)
     split_fracs = [
         config["dataset_train_frac"],
         config["dataset_test_frac"],
@@ -173,17 +183,31 @@ def parse_config(config, wandb=None):
         "hooks" : hooks
     }
 
-def get_train_state_from_config(config, **kwargs):
+def get_train_state_from_config(config, extras=None, **trainstate_kwargs):
     config = parse_config(config)
-    config.update(kwargs)
-    return TrainState(**config)
+    config.update(trainstate_kwargs)
+    trainstate = TrainState(**config)
+    if extras is not None:
+        extras_answers = [
+            config[extra] for extra in extras
+        ]
+        return (trainstate, ) + extras_answers
+    return trainstate
 
-def get_train_state(file_or_config, **kwargs):
+def get_train_state(file_or_config, extras=None, **trainstate_kwargs):
     if isinstance(file_or_config, str):
         with open(file_or_config, "r") as f:
             config = yaml.safe_load(f)
-            return get_train_state_from_config(config, **kwargs)
-    return get_train_state_from_config(file_or_config, **kwargs)
+            return get_train_state_from_config(
+                config, 
+                extras=extras, 
+                **trainstate_kwargs
+            )
+    return get_train_state_from_config(
+        file_or_config, 
+        extras=extras,
+        **trainstate_kwargs
+    )
 
 def run_experiment(
     given_config,
