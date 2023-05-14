@@ -25,6 +25,9 @@ def plot_1d_fn(fn, start=-1, end=1, n=1000, ax=None):
     x = rearrange(x, "n -> n 1")
     y = fn(x).detach().cpu().numpy()
     ax.plot(x, y)
+    ax.set_xlabel("x")
+    ax.set_ylabel("f(x)")
+    ax.set_title("1d function plot")
     if given_ax is None:
         fig.show()
 
@@ -35,6 +38,9 @@ def plot_1d_fn_from_data(fn, x, ax=None):
     sorted_x = t.sort(x.squeeze())[0].unsqueeze(1)
     y = fn(sorted_x).detach().cpu().numpy()
     ax.scatter(sorted_x.squeeze(), y, s=1)
+    ax.set_xlabel("x")
+    ax.set_ylabel("f(x)")
+    ax.set_title("1d function plot")
     if given_ax is None:
         fig.show()
 
@@ -78,7 +84,10 @@ def plot_1d_u_feats(
                     Ui_sorted,
                     alpha=math.sqrt(singular_values[i] / max_singular_value) if which_feat is None else 1
             )
-    ax2 = ax.twinx()
+    ax.set_xlabel("x")
+    ax.set_ylabel("U feature value")
+    ax.set_title("U features")
+    #ax2 = ax.twinx()
     #ax2.plot(
     #    x_sorted,
     #    model(x_sorted_batch).detach().cpu().numpy(),
@@ -126,7 +135,7 @@ def plot_dots_estimates(model, inputs, ax=None):
     ]
     getter_names = [
         "Jacobian rank",
-        "SV (heuristic)",
+        "SV (entropy)",
         "SV (entropy)",
         "max"
     ]
@@ -150,6 +159,7 @@ def plot_dots_estimates(model, inputs, ax=None):
     ax.legend()
     ax.set_xticks(x, [input.shape[0] for input in inputs])
     ax.set_xlabel("Data points")
+
  
 def plot_singular_value_distribution(model, inputs, ax=None):
     given_ax = ax
@@ -157,11 +167,20 @@ def plot_singular_value_distribution(model, inputs, ax=None):
         fig, ax = plt.subplots()
     if isinstance(inputs, t.Tensor):
         inputs = [inputs]
+    num_values = 0
     for input in inputs:
+        values = model.jacobian_singular_values(input).cpu()
+        num_values = max(num_values, values.shape[0])
         ax.plot(
-            model.jacobian_singular_values(input).cpu(),
-            label=f"{input.shape[0]} data points"
+            values, 
+            label=f"{input.shape[0]} data points",
+            linestyle="None",
+            marker="."
         )
+    for i in range(0, num_values, 5):
+        ax.axvline(i, color="black", alpha=0.1)
+    for i in range(0, num_values, 10):
+        ax.axvline(i, color="black", alpha=0.2)
     ax.set_title("Singular value distribution")
     ax.legend()
     ax.set_yscale("log")
@@ -187,19 +206,19 @@ def trainplot_1d_regression_over_axes(model, x, ax, fig):
     plot_dots_estimates(model, x, ax[0])
     
     # plot singular value distribution:
-    plot_singular_value_distribution(model, x, ax[1])
+    plot_singular_value_distribution(model, x, ax=ax[1])
     
     # plot the Jacobian:
-    plot_jacobian_img(model, x, ax[2], fig)
+    plot_jacobian_img(model, x, ax=ax[2], fig=fig)
     
     # plot the function:
-    plot_1d_fn_from_data(model, x, ax[3])
+    plot_1d_fn_from_data(model, x, ax=ax[3])
     
     # plot the U features:
-    plot_1d_u_feats(model, x, ax[4])
+    plot_1d_u_feats(model, x, ax=ax[4])
     
 
-def trainplot_1d(trainstate, x1=None, x2=None):
+def trainplot_1d(trainstate, x1=None, *x2etc):
     """Plots relevant information about the model at a particular point
     during training. It is assumed the model is a 1D to 1D model where the
     interesting stuff happens in the range [-1, 1]
@@ -207,21 +226,28 @@ def trainplot_1d(trainstate, x1=None, x2=None):
     for a random range in the second.
     If both are supplied, will plot both of them"""
     model = trainstate.model
-    figsize = (8, 20)
+    figsize = (12, 16)
+    x2 = None if len(x2etc) == 0 else x2etc[0]
+    x3etc = x2etc[1:]
     if x2 == None and x1 is not None:
         x2 = range_batch(-1, 1, 1000) 
     if x1 == None:
         x1 = range_batch(-1, 1, 1000) 
         fig, axs = plt.subplots(5, 1, figsize=figsize)
         trainplot_1d_regression_over_axes(model, x1, axs, fig)
-    fig, axs = plt.subplots(5, 2, figsize=figsize)
-    trainplot_1d_regression_over_axes(model, x1, axs[:, 0], fig)
-    trainplot_1d_regression_over_axes(model, x2, axs[:, 1], fig)
+    else:
+        fig, axs = plt.subplots(5, 2 + len(x3etc), figsize=figsize)
+        trainplot_1d_regression_over_axes(model, x1, axs[:, 0], fig)
+        trainplot_1d_regression_over_axes(model, x2, axs[:, 1], fig)
+        for i, x in enumerate(x3etc):
+            trainplot_1d_regression_over_axes(model, x, axs[:, i+2], fig) 
     plt.tight_layout(pad=2.0)
     plt.subplots_adjust(top=0.95)
     fig.suptitle(f"Epoch {trainstate.epochs} step {trainstate.steps}")
     fig.show()
-   
+
+
+ 
 def plot_dots_stats(model, inputs):
     # DEPRECATED
     dots_getters = [
