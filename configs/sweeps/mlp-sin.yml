@@ -31,7 +31,7 @@ parameters:
   modelarg_bias: 
     value: true
   dataset_name: 
-    value: relu
+    value: sin
   dataset_train_frac:
     value: 0.8
   dataset_test_frac:
