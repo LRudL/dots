@@ -43,6 +43,7 @@ def plot_1d_u_feats(
     x,
     max_feats=None,
     which_feat=None,
+    avoid_flip=False,
     ax=None
 ):
     given_ax = ax
@@ -68,11 +69,14 @@ def plot_1d_u_feats(
         if (which_feat is None and (max_feats is None or i < max_feats)) or i == which_feat:
             #U_T_sorted = U_T[i, x_sorted_indices]  # Sort U_T[i] according to x_sorted order
             Ui_sorted = U_T_sorted[i]
+            if not avoid_flip:
+                if Ui_sorted[-1] < 0:
+                    Ui_sorted = -Ui_sorted
             if singular_values[i] / max_singular_value > 0.01:
                 ax.plot(
                     x_sorted,
                     Ui_sorted,
-                    alpha=math.sqrt(singular_values[i] / max_singular_value)
+                    alpha=math.sqrt(singular_values[i] / max_singular_value) if which_feat is None else 1
             )
     ax2 = ax.twinx()
     #ax2.plot(

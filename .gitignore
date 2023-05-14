@@ -1,5 +1,6 @@
 # data downloaded by running notebooks:
 notebooks/data
+notebooks/imgs
 data
 models/*
 
