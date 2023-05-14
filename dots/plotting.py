@@ -3,6 +3,20 @@ import matplotlib.pyplot as plt
 
 default_color_cycle = plt.rcParams['axes.prop_cycle'].by_key()['color']
 
+def integer_histogram(x, ax=None, xlabel=""):
+    given_ax = ax
+    if given_ax is None:
+        fig, ax = plt.subplots()
+    n_bins = max(x) - min(x) + 1
+    counts, bin_edges = np.histogram(x, bins=n_bins, range=(min(x), max(x)+1))
+    ax.bar(bin_edges[:-1], counts, align="center", width=1)
+    ax.set_xticks(bin_edges[:-1])
+    ax.set_ylabel("Count")
+    ax.set_xlabel(xlabel)
+    if given_ax is None:
+        plt.show()
+
+
 def plot_1d_fn(fn, start=-1, end=1, n=1000, ax=None):
     given_ax = ax
     if given_ax is None:
