@@ -2,7 +2,7 @@ import torch as t
 import torch.utils.data as tdata
 from dots.utils import range_batch
 
-N_DEFAULT = 1000
+N_DEFAULT = 1536
 SEED_DEFAULT = 0
 
 def algorithmic_dataset(fn, start=-1, end=1, N=N_DEFAULT, seed=SEED_DEFAULT):
@@ -32,6 +32,8 @@ def get_dataset(name):
         case "relu":
             return algorithmic_dataset(t.nn.ReLU(), -1, 1, N_DEFAULT)
         case "sin":
-            return algorithmic_dataset(t.sin, -1, 1, N_DEFAULT) 
+            def sin(x):
+                return t.sin(t.pi * x)
+            return algorithmic_dataset(sin, -1, 1, N_DEFAULT) 
         case _:
             raise ValueError(f"Unknown dataset name: {name}")
