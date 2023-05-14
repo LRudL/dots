@@ -1,6 +1,8 @@
 from dots.utils import *
 import matplotlib.pyplot as plt
 
+default_color_cycle = plt.rcParams['axes.prop_cycle'].by_key()['color']
+
 def plot_1d_fn(fn, start=-1, end=1, n=1000, ax=None):
     given_ax = ax
     if given_ax is None:
@@ -22,27 +24,43 @@ def plot_1d_fn_from_data(fn, x, ax=None):
     if given_ax is None:
         fig.show()
 
-def plot_1d_u_feats(model, x, ax=None):
+def plot_1d_u_feats(
+    model, 
+    x,
+    max_feats=None,
+    which_feat=None,
+    ax=None
+):
     given_ax = ax
     if given_ax is None:
         fig, ax = plt.subplots()
     x_sorted_indices = np.argsort(x.squeeze())  # Sort the indices of x in ascending order
     x_sorted = x.squeeze()[x_sorted_indices]  # Sort the flattened x values
     x_sorted_batch = rearrange(x_sorted, "n -> n 1")
-    U_T = model.u_features(x_sorted_batch).detach().cpu().numpy().T
-    # U now has size [rank, N] with x_sorted order;
+    U_T = model.u_features(x_sorted_batch).detach().cpu().T
+    # U_T now has size [rank, N] with x_sorted order;
     # we want to plot each row of U as a function of x_sorted
     singular_values = model.jacobian_singular_values(
         x_sorted_batch
-    ).detach().cpu().numpy()
+    ).detach().cpu()
+    assert singular_values.shape[0] == U_T.shape[0] # both are the rank
+    assert U_T.shape[1] == x_sorted.shape[0] # both are the number of points
+    rank = U_T.shape[0]
+    N = U_T.shape[1]
     max_singular_value = singular_values.max()
+    #U_T_sorted = t.index_select(U_T.T, 0, t.tensor(x_sorted_indices)).T
+    U_T_sorted = U_T
     for i in range(U_T.shape[0]):
-        U_T_sorted = U_T[i, x_sorted_indices]  # Sort U_T[i] according to x_sorted order
-        ax.plot(
-            x_sorted,
-            U_T_sorted,
-            alpha=max(0.05, math.sqrt(singular_values[i] / max_singular_value)))
-    #ax2 = ax.twinx()
+        if (which_feat is None and (max_feats is None or i < max_feats)) or i == which_feat:
+            #U_T_sorted = U_T[i, x_sorted_indices]  # Sort U_T[i] according to x_sorted order
+            Ui_sorted = U_T_sorted[i]
+            if singular_values[i] / max_singular_value > 0.01:
+                ax.plot(
+                    x_sorted,
+                    Ui_sorted,
+                    alpha=math.sqrt(singular_values[i] / max_singular_value)
+            )
+    ax2 = ax.twinx()
     #ax2.plot(
     #    x_sorted,
     #    model(x_sorted_batch).detach().cpu().numpy(),
@@ -50,7 +68,15 @@ def plot_1d_u_feats(model, x, ax=None):
     #    linestyle="dotted"
     #)
     #ax.set_title("U features, with current function drawn in dotted black")
-    ax.set_title("U features")
+    #average_change = average_U(U_T_sorted.T, singular_values)
+    #assert average_change.shape[0] == x_sorted.shape[0]
+    #ax2.plot(
+    #    x_sorted,
+    #    average_change,
+    #    color="black",
+    #    linestyle="dotted"
+    #)
+    #ax.set_title("U features")
     if given_ax is None:
         fig.show()
 
@@ -82,23 +108,27 @@ def plot_dots_estimates(model, inputs, ax=None):
     ]
     getter_names = [
         "Jacobian rank",
-        "SV rank, heuristic threshold",
-        "SV rank, entropy",
-        "Maximum rank"
+        "SV (heuristic)",
+        "SV (entropy)",
+        "max"
     ]
-    # TODO write the numbers on the plot
     # TODO log scale?
     if isinstance(inputs, t.Tensor):
         inputs = [inputs]
     x = np.arange(len(inputs))
     for i, (getter_name, getter) in enumerate(zip(getter_names, dots_getters)):
         y = []
+        x_loc = x - 0.2 + 0.2 * i
         for input in inputs:
             new = getter(model, input)
             if is_tensor(new):
-                new = new.cpu()
+                new = new.cpu().item()
             y.append(new)
-        ax.bar(x - 0.2 + 0.2 * i, y, 0.2, label=getter_name)
+        ax.bar(x_loc, y, 0.2, label=getter_name)
+        for i, value in enumerate(y):
+            # display to 2 decimal places:
+            text = f"{value:.2f}" if isinstance(value, float) else str(value)
+            ax.text(x_loc, value, text, ha='center', va='bottom')
     ax.legend()
     ax.set_xticks(x, [input.shape[0] for input in inputs])
     ax.set_xlabel("Data points")
@@ -127,7 +157,7 @@ def plot_jacobian_img(model, x, ax=None, fig=None):
         fig, ax = plt.subplots()
     matrix = model.matrix_jacobian(x).detach().cpu().numpy()
     ax.imshow(matrix, aspect="auto")
-    ax.set_title(f"{matrix.shape[0]} outputs")
+    ax.set_title(f"Jacobian, {matrix.shape[0]} outputs")
     if fig is not None:
         fig.colorbar(plt.cm.ScalarMappable(), ax=ax, orientation="horizontal")
     if given_ax is None:
