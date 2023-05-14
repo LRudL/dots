@@ -245,6 +245,7 @@ def trainplot_1d(trainstate, x1=None, *x2etc):
     plt.subplots_adjust(top=0.95)
     fig.suptitle(f"Epoch {trainstate.epochs} step {trainstate.steps}")
     fig.show()
+    return fig
 
 
  

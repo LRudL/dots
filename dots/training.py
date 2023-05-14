@@ -14,7 +14,8 @@ def train(
     epochs,
     hooks = [],
     progress_bars = False,
-    wandb = None
+    wandb = None,
+    trainstate=None
 ):
     device = get_device()
     total_steps = len(dataloader)
@@ -24,11 +25,15 @@ def train(
             x = x.to(device)
             y = y.to(device)
             
-            optimiser.zero_grad()
-            yhat = model(x)
-            loss = loss_fn(yhat, y)
-            loss.backward()
-            optimiser.step()
+            if epoch_n == 0 and i == 0:
+                yhat = model(x)
+                loss = loss_fn(yhat, y)
+            else:
+                optimiser.zero_grad()
+                yhat = model(x)
+                loss = loss_fn(yhat, y)
+                loss.backward()
+                optimiser.step()
             
             obj = {
                 "epoch": epoch_n,
@@ -43,10 +48,14 @@ def train(
                 "dataloader": dataloader,
                 "x": x,
                 "y": y,
-                "predicted_y": yhat
+                "predicted_y": yhat,
+                "trainstate": trainstate
             }
             for hook in hooks:
                 hook.run(obj)
+            
+            trainstate.epochs = epoch_n
+            trainstate.steps = i
             #if wandb is not None:
             #    wandb.log(
             #        {
@@ -153,7 +162,8 @@ class TrainState():
               dataloader=self.dataloader,
               epochs=epochs,
               hooks=self.hooks,
-              wandb=self.wandb)
+              wandb=self.wandb,
+              trainstate=self)
         for hook in self.hooks:
             hook.increment_counters(epochs, epochs*len(self.dataloader))
         if checkpoint:

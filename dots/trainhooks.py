@@ -1,10 +1,10 @@
-
 import torch as t
 import numpy as np
 from copy import deepcopy
 import matplotlib.pyplot as plt
 from tqdm.notebook import tqdm
 from dots.utils import is_tensor, get_device
+from dots.plotting import plot_1d_u_feats, trainplot_1d
 
 def test_trigger(n, step_n, step_range):
     if step_n == -1:
@@ -205,3 +205,16 @@ def u_features_hook(x, epochs=1, train_steps=-1, wandb=None):
         wandb=wandb
     )
 
+def trainstate_hook(*xs, epochs=1, train_steps=-1, wandb=None):
+    def fn(obj):
+       ts = obj["trainstate"]
+       fig = trainplot_1d(ts, *xs)
+       name_prefix = wandb.run.name
+       fig.savefig(f"out/{name_prefix}_ts_{obj['step_overall']}.png") 
+       t.save(obj["model"], f"out/{name_prefix}_model_{obj['step_overall']}.pt")
+    return TrainHook(
+       fn,
+       epochs=epochs,
+       train_steps=train_steps,
+       name="trainstate_plot_saver" 
+    )

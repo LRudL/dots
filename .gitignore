@@ -3,6 +3,7 @@ notebooks/data
 notebooks/imgs
 data
 models/*
+out/*
 
 # all wandb folders:
 **/wandb/

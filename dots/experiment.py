@@ -4,10 +4,10 @@ import wandb
 import torch as t
 import torch.utils.data as tdata
 from dots.training import train, TrainState
-from dots.utils import range_batch, get_device, tensor_of_dataset
+from dots.utils import range_batch, random_batch, get_device, tensor_of_dataset
 from dots.datasets import get_dataset
 from dots.models import *
-from dots.trainhooks import jacobian_rank_hook
+from dots.trainhooks import * 
 
 
 def get_model(name):
@@ -94,6 +94,10 @@ def parse_config(config, wandb=None):
         int(frac * len(dataset)) 
         for frac in split_fracs
     ]
+    if sum(dataset_split_sizes) != len(dataset):
+        print(f"Warning: dataset split sizes {dataset_split_sizes} do not sum to {len(dataset)} but instead to {sum(dataset_split_sizes)}")
+        dataset_split_sizes[-1] += len(dataset) - sum(dataset_split_sizes)
+        print(f"Warning: corrected dataset split sizes to {dataset_split_sizes}")
     
     if config.get("seed") is not None:
         t.manual_seed(config["seed"])
@@ -173,6 +177,34 @@ def parse_config(config, wandb=None):
                 )
             )
     
+    trainstate_datasize = config.get("log_trainstate_datasize")
+    trainstate_randsize = config.get("log_trainstate_randsize")
+    if trainstate_datasize is not None or trainstate_randsize is not None:
+        # these are the inputs that we plot in columns
+        # of the saved figures:
+        xs = []
+        if trainstate_datasize is not None:
+            xs.append(
+                tensor_of_dataset(
+                    dataset, 
+                    range(0, config["log_trainstate_datasize"])
+                )
+            )
+        datashape = dataset[0][0].shape if isinstance(dataset[0], tuple) else dataset[0].shape
+        if trainstate_randsize is not None:
+            for rand_size in trainstate_randsize:
+                xs.append(
+                    random_batch(rand_size, datashape)
+                )
+        hooks.append(
+            trainstate_hook(
+                *xs,
+                epochs=1,
+                train_steps=-1,
+                wandb=wandb
+            )
+        )
+    
     return {
         "model" : model,
         "optimiser" : optimiser,
@@ -184,7 +216,8 @@ def parse_config(config, wandb=None):
     }
 
 def get_train_state_from_config(config, extras=None, **trainstate_kwargs):
-    config = parse_config(config)
+    wandb = trainstate_kwargs.get("wandb")
+    config = parse_config(config, wandb=wandb)
     config.update(trainstate_kwargs)
     trainstate = TrainState(**config)
     if extras is not None:

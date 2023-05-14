@@ -32,10 +32,12 @@ def range_batch(start, end, n, move_to_device=True, sort=False):
     else:
         return tensor.to(move_to_device)
 
-def random_batch(n, shape, move_to_device=True):
+def random_batch(n, shape, start=-1, end=1, move_to_device=True):
     if isinstance(shape, int):
         shape = (shape,)
     tensor = t.rand((n,) + shape)
+    # tensor is now distributed [0, 1]; we want [start, end]
+    tensor = tensor * (end - start) + start
     if move_to_device == True:
         return tensor.to(get_device())
     elif move_to_device == False:
