@@ -35,5 +35,18 @@ def get_dataset(name):
             def sin(x):
                 return t.sin(t.pi * x)
             return algorithmic_dataset(sin, -1, 1, N_DEFAULT) 
+        case "hfsin":
+            def sin(x):
+                return t.sin(t.pi * 8 * x)
+            return algorithmic_dataset(sin, -1, 1, N_DEFAULT)
+        case "square":
+            def square(x):
+                xp = 2 * x
+                return t.where(t.floor(xp) % 2 == 0, t.tensor(-1), t.tensor(1))
+            return algorithmic_dataset(square, -1, 1, N_DEFAULT)
+        case "noise":
+            def noise(x):
+                return t.rand_like(x)
+            return algorithmic_dataset(noise, -1, 1, N_DEFAULT)
         case _:
             raise ValueError(f"Unknown dataset name: {name}")

@@ -68,6 +68,14 @@ def with_changed_pixel(tensor, change_amount=0.01):
 def dataset_from_end(dataset, length):
     return tdata.Subset(dataset, range(len(dataset)-length, len(dataset))) 
 
+def x_y_tensors_of_dataset(dataset):
+    x = []
+    y = []
+    for item, label in dataset:
+        x.append(item)
+        y.append(label)
+    return t.stack(x), t.tensor(y)
+
 def tensor_of_dataset(dataset, indices=None):
     if indices == None:
         indices = range(len(dataset))
