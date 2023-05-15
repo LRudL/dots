@@ -210,8 +210,9 @@ def trainstate_hook(*xs, epochs=1, train_steps=-1, wandb=None):
        ts = obj["trainstate"]
        fig = trainplot_1d(ts, *xs)
        name_prefix = wandb.run.name
-       fig.savefig(f"out/{name_prefix}_ts_{obj['step_overall']}.png") 
-       t.save(obj["model"], f"out/{name_prefix}_model_{obj['step_overall']}.pt")
+       num = prepend_zeros(obj["step_overall"], 5)
+       fig.savefig(f"out/{name_prefix}_ts_{num}.png") 
+       t.save(obj["model"], f"out/{name_prefix}_model_{num}.pt")
     return TrainHook(
        fn,
        epochs=epochs,

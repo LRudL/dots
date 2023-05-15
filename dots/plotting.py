@@ -255,7 +255,7 @@ def trainplot_1d(trainstate, x1=None, *x2etc):
     if got_model:
         fig.suptitle("[run from trainstate not model to see epoch/step]")
     else:
-        fig.suptitle(f"Epoch {trainstate.epochs} step {trainstate.steps}")
+        fig.suptitle(f"Epoch {trainstate.epochs} step {trainstate.steps} (total steps taken: {trainstate.overall_steps})")
     #fig.show()
     return fig
 

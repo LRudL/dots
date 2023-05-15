@@ -6,6 +6,13 @@ from einops import rearrange
 
 flatten = lambda l : [item for sl in l for item in sl]
 
+def prepend_zeros(num, n):
+    num_str = str(num)
+    if len(num_str) >= n:
+        return num_str
+    else:
+        return '0' * (n - len(num_str)) + num_str
+
 def is_tensor(obj):
     return isinstance(obj, t.Tensor)
 

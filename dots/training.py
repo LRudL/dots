@@ -56,6 +56,7 @@ def train(
             
             trainstate.epochs = epoch_n
             trainstate.steps = i
+            trainstate.overall_steps = epoch_n * total_steps + i
             #if wandb is not None:
             #    wandb.log(
             #        {
@@ -140,6 +141,7 @@ class TrainState():
         
         self.epochs = 0
         self.steps = 0
+        self.overall_steps = 0
         self.epoch_size = len(self.dataloader)
         
         self.checkpoints = []
