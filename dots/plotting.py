@@ -127,7 +127,7 @@ def plot_dots_estimates(model, inputs, ax=None):
     dots_getters = [
         lambda m, x : m.jacobian_matrix_rank(x),
         lambda m, x : m.singular_value_rank(x, method="entropy"),
-        lambda m, x : m.singular_value_rank(x, method="heuristic"),
+        lambda m, x : m.singular_value_rank(x, method="trim"),
         lambda m, x : min(
             m.count_params(),
             np.prod(np.array(x.shape))
@@ -136,7 +136,7 @@ def plot_dots_estimates(model, inputs, ax=None):
     getter_names = [
         "Jacobian rank",
         "SV (entropy)",
-        "SV (entropy)",
+        "SV (trim)",
         "max"
     ]
     # TODO log scale?
@@ -225,7 +225,16 @@ def trainplot_1d(trainstate, x1=None, *x2etc):
     If x1 and x2 are none, will plot statistics for x1 in the first column and
     for a random range in the second.
     If both are supplied, will plot both of them"""
-    model = trainstate.model
+    if hasattr(trainstate, "model"):
+        # not doing it the proper way (checking isinstance) because
+        # this would cause a circular import:
+        # training -> plotting -> trainhooks -> training
+        model = trainstate.model
+        got_model = False
+    else:
+        print("Assuming trainplot_1d got a model, not a trainstate")
+        model = trainstate
+        got_model = True
     figsize = (12, 16)
     x2 = None if len(x2etc) == 0 else x2etc[0]
     x3etc = x2etc[1:]
@@ -243,8 +252,11 @@ def trainplot_1d(trainstate, x1=None, *x2etc):
             trainplot_1d_regression_over_axes(model, x, axs[:, i+2], fig) 
     plt.tight_layout(pad=2.0)
     plt.subplots_adjust(top=0.95)
-    fig.suptitle(f"Epoch {trainstate.epochs} step {trainstate.steps}")
-    fig.show()
+    if got_model:
+        fig.suptitle("[run from trainstate not model to see epoch/step]")
+    else:
+        fig.suptitle(f"Epoch {trainstate.epochs} step {trainstate.steps}")
+    #fig.show()
     return fig
 
 
