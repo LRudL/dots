@@ -122,27 +122,64 @@ def plot_u_feats_img(start, end, n, model, ax=None):
 def plot_2d_points(X, Y):
     unique_labels = t.unique(Y)  # Get unique labels
 
-    # Set up colors for each label
-    colors = plt.cm.get_cmap('tab10', len(unique_labels))
-
     # Plot the points with different colors based on labels
     for i, label in enumerate(unique_labels):
         label_points = X[Y == label]  # Filter points for each label
         plt.scatter(
             label_points[:, 0],
             label_points[:, 1],
-            color=colors(i),
             label=f'Label {label}',
             s=1
         )
 
     # Add legend and labels
     plt.legend()
-    plt.xlabel('X')
-    plt.ylabel('Y')
 
     # Display the plot
     plt.show()
+
+
+def plot_decision_boundary(model, X, y, resolution=0.02):
+    device = next(model.parameters()).device
+    
+    # Set min and max values for the feature space
+    x_min, x_max = X[:, 0].min() - 1, X[:, 0].max() + 1
+    y_min, y_max = X[:, 1].min() - 1, X[:, 1].max() + 1
+
+    # Create a meshgrid of points in the feature space
+    xx, yy = t.meshgrid(t.arange(x_min, x_max, resolution),
+                        t.arange(y_min, y_max, resolution))
+    xx, yy = xx.to(device), yy.to(device)
+
+    # Flatten the grid points and pass them through the model
+    grid_points = t.stack((xx.flatten(), yy.flatten()), dim=1)
+    with t.no_grad():
+        Z = model(grid_points)
+    Z = Z.argmax(dim=1).cpu().numpy()
+    Z = Z.reshape(xx.shape)
+
+    # Create a contour plot of the decision boundary
+    plt.contourf(xx.cpu().numpy(), yy.cpu().numpy(), Z, alpha=0.4)
+
+    # Plot the training examples with different colors for each class
+    unique_classes = t.unique(y)
+    for class_label in unique_classes:
+        class_points = X[y == class_label.item()]
+        plt.scatter(
+            class_points[:, 0],
+            class_points[:, 1],
+            label=f'Class {class_label.item()}',
+            s=4
+        )
+
+    # Add labels and legend
+    plt.xlabel('Feature 1')
+    plt.ylabel('Feature 2')
+    plt.legend()
+
+    # Show the plot
+    plt.show()
+
 
 
 def plot_dots_estimates(model, inputs, ax=None):

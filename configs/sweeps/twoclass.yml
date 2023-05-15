@@ -1,0 +1,47 @@
+program: run.py
+method: random
+metric:
+  name: test_acc
+  goal: minimize
+parameters:
+  seed:
+    value: 0
+  model_class: 
+    values:
+      - MLP
+  modelarg_in_size:
+    value: 2
+  modelarg_out_size:
+    value: 2
+  modelarg_hidden: 
+    values:
+      - "[1024]"
+      - "[12, 12, 12]"
+      - "[128, 128]"
+  dataset_name: 
+    value: twoclasses
+  dataset_train_frac:
+    value: 0.8
+  dataset_test_frac:
+    value: 0.1
+  dataset_val_frac:
+    value: 0.1
+  loss_fn:
+    value: CrossEntropy
+  hp_opt_name:
+    value: Adam
+  hp_optarg_lr:
+    distribution: log_uniform_values
+    min: 0.0001
+    max: 0.1
+  hp_epochs:
+    value: 4
+  hp_batch_size:
+    values:
+      - 64
+  log_dots:
+    value: "[4, 16, 64]"
+  log_datadots:
+    value: "[4, 16, 64]"
+  log_accuracy:
+    value: True

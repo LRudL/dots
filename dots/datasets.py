@@ -14,7 +14,14 @@ def algorithmic_dataset(fn, start=-1, end=1, N=N_DEFAULT, seed=SEED_DEFAULT):
     dataset = tdata.TensorDataset(X, Y)
     return dataset
 
-def get_dataset(name):
+def gen_cluster(mean, std, n):
+    points = t.empty((n, 2))
+    for i in range(n):
+        points[i] = t.normal(mean=mean, std=std)
+    return points
+
+
+def get_dataset(name, seed=SEED_DEFAULT):
     match name:
         case "mnist":
             import torchvision
@@ -52,22 +59,52 @@ def get_dataset(name):
                 return t.rand_like(x)
             return algorithmic_dataset(noise, -1, 1, N_DEFAULT)
         case "twoclasses":
+            t.manual_seed(seed)
+            N = 128
             mean1 = t.tensor([0.5, 0.5])
             mean2 = t.tensor([-0.5, -0.5])
+            mean3 = t.tensor([0.5, -0.5])
+            mean4 = t.tensor([-0.5, 0.5])
             std1 = t.tensor([0.1, 0.1])
             std2 = t.tensor([0.1, 0.1])
-            def gen_cluster(mean, std, n):
-                points = t.empty((n, 2))
-                for i in range(n):
-                    points[i] = t.normal(mean=mean, std=std)
-                return points
-            cluster1 = gen_cluster(mean1, std1, N_DEFAULT // 2)
-            cluster2 = gen_cluster(mean2, std2, N_DEFAULT // 2)
-            X = t.cat((cluster1, cluster2))
+            std3 = t.tensor([0.1, 0.1])
+            std4 = t.tensor([0.1, 0.1])
+            cluster1 = gen_cluster(mean1, std1, N // 4)
+            cluster2 = gen_cluster(mean2, std2, N // 4)
+            cluster3 = gen_cluster(mean3, std3, N // 4)
+            cluster4 = gen_cluster(mean4, std4, N // 4)
+            X = t.cat((cluster1, cluster2, cluster3, cluster4))
             Y = t.cat(
-                (t.zeros(N_DEFAULT // 2).long(),
-                 t.ones(N_DEFAULT // 2).long()))
-            shuffled_idx = t.randperm(N_DEFAULT)
+                (t.zeros(N // 4).long(),
+                 t.zeros(N // 4).long(),
+                 t.ones(N // 4).long(),
+                 t.ones(N // 4).long()))
+            shuffled_idx = t.randperm(N)
+            X = X[shuffled_idx]
+            Y = Y[shuffled_idx]
+            return tdata.TensorDataset(X, Y)
+        case "randtwoclasses":
+            t.manual_seed(seed)
+            N = 20
+            d = 1.0
+            std = 0.3
+            mean1 = t.tensor([d, d])
+            mean2 = t.tensor([-d, -d])
+            mean3 = t.tensor([d, -d])
+            mean4 = t.tensor([-d, d])
+            std1 = t.tensor([std, std])
+            std2 = t.tensor([std, std])
+            std3 = t.tensor([std, std])
+            std4 = t.tensor([std, std])
+            cluster1 = gen_cluster(mean1, std1, N // 4)
+            cluster2 = gen_cluster(mean2, std2, N // 4)
+            cluster3 = gen_cluster(mean3, std3, N // 4)
+            cluster4 = gen_cluster(mean4, std4, N // 4)
+            X = t.cat((cluster1, cluster2, cluster3, cluster4))[t.randperm(N)]
+            Y = t.cat(
+                (t.zeros(N // 2).long(),
+                    t.ones(N // 2).long()))
+            shuffled_idx = t.randperm(N)
             X = X[shuffled_idx]
             Y = Y[shuffled_idx]
             return tdata.TensorDataset(X, Y)
