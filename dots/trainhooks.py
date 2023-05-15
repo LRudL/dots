@@ -3,7 +3,7 @@ import numpy as np
 from copy import deepcopy
 import matplotlib.pyplot as plt
 from tqdm.notebook import tqdm
-from dots.utils import is_tensor, get_device
+from dots.utils import is_tensor, get_device, prepend_zeros
 from dots.plotting import plot_1d_u_feats, trainplot_1d
 
 def test_trigger(n, step_n, step_range):
