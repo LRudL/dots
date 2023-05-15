@@ -55,7 +55,7 @@ def plot_1d_u_feats(
     given_ax = ax
     if given_ax is None:
         fig, ax = plt.subplots()
-    x_sorted_indices = np.argsort(x.squeeze())  # Sort the indices of x in ascending order
+    x_sorted_indices = np.argsort(x.squeeze().cpu())  # Sort the indices of x in ascending order
     x_sorted = x.squeeze()[x_sorted_indices]  # Sort the flattened x values
     x_sorted_batch = rearrange(x_sorted, "n -> n 1")
     U_T = model.u_features(x_sorted_batch).detach().cpu().T
