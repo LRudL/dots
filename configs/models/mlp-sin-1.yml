@@ -1,0 +1,19 @@
+seed: 7
+model_class: MLP
+modelarg_in_size: 1
+modelarg_hidden: "[100]"
+modelarg_out_size: 1
+modelarg_bias: true
+dataset_name: sin
+dataset_train_frac: 0.8
+dataset_test_frac: 0.1
+dataset_val_frac: 0.1
+loss_fn: MSELoss
+hp_opt_name: Adam
+hp_optarg_lr: 0.001
+hp_epochs: 30
+hp_batch_size: 64
+log_dots: "[32, 128, 1024]"
+log_datadots: "[32, 128, 1024]"
+log_trainstate_datasize: 1024
+log_trainstate_randsize: "[1024, 8192]"
