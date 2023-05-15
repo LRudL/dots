@@ -1,8 +1,8 @@
 program: run.py
 method: random
 metric:
-  name: test_acc
-  goal: maximize
+  name: test_loss
+  goal: minimize
 parameters:
   seed:
     values:
@@ -14,23 +14,29 @@ parameters:
       - 5
       - 6
       - 7
+      - 8
+      - 9
+      - 10
   model_class: 
-    values:
-      - MLP
+    value: MLP
   modelarg_in_size:
-    value: 2
-  modelarg_out_size:
-    value: 2
+    value: 1
   modelarg_hidden: 
     values:
-      - "[1024]"
+      - "[512]"
       - "[4096]"
-      - "[12, 12, 12]"
-      - "[24, 24, 24]"
+      - "[12, 12, 12, 12]"
+      - "[12, 12, 12, 12, 12]"
+      - "[64, 64]"
+      - "[64, 64, 64]"
       - "[128, 128]"
       - "[128, 128, 128]"
+  modelarg_out_size: 
+    value: 1
+  modelarg_bias: 
+    value: true
   dataset_name: 
-    value: randtwoclasses
+    value: hfsin2
   dataset_train_frac:
     value: 0.8
   dataset_test_frac:
@@ -38,22 +44,25 @@ parameters:
   dataset_val_frac:
     value: 0.1
   loss_fn:
-    value: CrossEntropy
+    value: MSELoss
   hp_opt_name:
-    value: SGD
+    value: Adam
   hp_optarg_lr:
     distribution: log_uniform_values
-    min: 0.001
-    max: 0.4
+    min: 0.0001
+    max: 0.1
   hp_epochs:
-    value: 4
+    value: 30
   hp_batch_size:
     values:
-      - 1
       - 4
+      - 64
+      - 512
   log_dots:
-    value: "[16, 64, 512]"
+    value: "[32, 128, 1024]"
   log_datadots:
-    value: "[4, 16]"
-  log_accuracy:
-    value: True
+    value: "[32, 128, 1024]"
+  log_trainstate_datasize:
+    value: 1024
+  log_trainstate_randsize:
+    value: "[1024, 8192]"

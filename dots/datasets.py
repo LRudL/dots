@@ -46,6 +46,21 @@ def get_dataset(name, seed=SEED_DEFAULT):
             def sin(x):
                 return t.sin(t.pi * 8 * x)
             return algorithmic_dataset(sin, -1, 1, N_DEFAULT)
+        case "hfsin2":
+            def sin(x):
+                return t.sin(t.pi * 3 * x) / 2
+            return algorithmic_dataset(sin, -1, 1, N_DEFAULT)
+        case "hfsin2andblock":
+            def sin(x):
+                return t.sin(t.pi * 3 * x) / 2
+            def block(x):
+                return t.where(
+                        (x > 0.25) & (x < 0.75),
+                        -sin(x) + sin(t.tensor(0.25)),
+                        t.tensor(0.0).to(get_device()))
+            def hfsin2andblock(x):
+                return sin(x) + block(x)
+            return algorithmic_dataset(hfsin2andblock, -1, 1, N_DEFAULT)
         case "square":
             def square(x):
                 xp = 2 * x
@@ -85,7 +100,7 @@ def get_dataset(name, seed=SEED_DEFAULT):
             return tdata.TensorDataset(X, Y)
         case "randtwoclasses":
             t.manual_seed(seed)
-            N = 40
+            N = 20
             d = 1.0
             std = 0.3
             mean1 = t.tensor([d, d])

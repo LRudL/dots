@@ -2,7 +2,7 @@ program: run.py
 method: random
 metric:
   name: test_acc
-  goal: minimize
+  goal: maximize
 parameters:
   seed:
     value: 0
