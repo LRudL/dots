@@ -36,7 +36,7 @@ parameters:
   modelarg_bias: 
     value: true
   dataset_name: 
-    value: sin
+    value: square
   dataset_train_frac:
     value: 0.8
   dataset_test_frac:

@@ -22,10 +22,15 @@ parameters:
     value: 1
   modelarg_hidden: 
     values:
-      - "[10]"
-      - "[100]"
-      - "[10, 10]"
-      - "[5, 5, 5]"
+      - "[8]"
+      - "[64]"
+      - "[512]"
+      - "[8, 8]"
+      - "[8, 8, 8]"
+      - "[8, 8, 8, 8]"
+      - "[32]"
+      - "[32, 32]"
+      - "[32, 32, 32]"
   modelarg_out_size: 
     value: 1
   modelarg_bias: 
@@ -43,10 +48,9 @@ parameters:
   hp_opt_name:
     value: Adam
   hp_optarg_lr:
-    values:
-      - 0.001
-      - 0.01
-      - 0.1
+    distribution: log_uniform_values
+      min: 0.0001
+      max: 0.1
   hp_epochs:
     value: 30
   hp_batch_size:
