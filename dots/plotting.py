@@ -24,7 +24,7 @@ def plot_1d_fn(fn, start=-1, end=1, n=1000, ax=None):
     x = t.linspace(start, end, n)
     x = rearrange(x, "n -> n 1")
     y = fn(x).detach().cpu().numpy()
-    ax.plot(x, y)
+    ax.plot(x.detach().cpu().numpy(), y)
     ax.set_xlabel("x")
     ax.set_ylabel("f(x)")
     ax.set_title("1d function plot")
@@ -37,7 +37,7 @@ def plot_1d_fn_from_data(fn, x, ax=None):
         fig, ax = plt.subplots()
     sorted_x = t.sort(x.squeeze())[0].unsqueeze(1)
     y = fn(sorted_x).detach().cpu().numpy()
-    ax.scatter(sorted_x.squeeze(), y, s=1)
+    ax.scatter(sorted_x.squeeze().detach().cpu().numpy(), y, s=1)
     ax.set_xlabel("x")
     ax.set_ylabel("f(x)")
     ax.set_title("1d function plot")
@@ -80,8 +80,8 @@ def plot_1d_u_feats(
                     Ui_sorted = -Ui_sorted
             if singular_values[i] / max_singular_value > 0.01:
                 ax.plot(
-                    x_sorted,
-                    Ui_sorted,
+                    x_sorted.detach().cpu().numpy(),
+                    Ui_sorted.detach().cpu().numpy(),
                     alpha=math.sqrt(singular_values[i] / max_singular_value) if which_feat is None else 1
             )
     ax.set_xlabel("x")

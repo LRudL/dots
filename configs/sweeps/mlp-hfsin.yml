@@ -49,8 +49,8 @@ parameters:
     value: Adam
   hp_optarg_lr:
     distribution: log_uniform_values
-      min: 0.0001
-      max: 0.1
+    min: 0.0001
+    max: 0.1
   hp_epochs:
     value: 30
   hp_batch_size:
