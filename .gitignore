@@ -4,6 +4,7 @@ notebooks/imgs
 data
 models/*
 out/*
+test_model_file
 
 # all wandb folders:
 **/wandb/

@@ -6,6 +6,8 @@ import torch as t
 import torch.utils.data as tdata
 import matplotlib.pyplot as plt
 from einops import rearrange
+import wandb
+import tqdm
 
 from dots.training import *
 from dots.models import MLP
@@ -59,8 +61,8 @@ trainstate_m = TrainState(
     model=cnn,
     optimiser=t.optim.Adam(cnn.parameters(), lr=1e-3),
     loss_fn=t.nn.CrossEntropyLoss(),
-    dataloader=mnist_valid_loader,
-    test_loader=mnist_test_loader,
+    train_dataloader=mnist_valid_loader,
+    test_dataloader=mnist_test_loader,
     hooks=[]
 )
 
