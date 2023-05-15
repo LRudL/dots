@@ -1,6 +1,6 @@
 import torch as t
 import torch.utils.data as tdata
-from dots.utils import range_batch
+from dots.utils import range_batch, get_device
 
 N_DEFAULT = 1536
 SEED_DEFAULT = 0
@@ -42,7 +42,10 @@ def get_dataset(name):
         case "square":
             def square(x):
                 xp = 2 * x
-                return t.where(t.floor(xp) % 2 == 0, t.tensor(-1), t.tensor(1))
+                return t.where(
+                        t.floor(xp) % 2 == 0,
+                        t.tensor(-1).to(get_device()),
+                        t.tensor(1).to(get_device()))
             return algorithmic_dataset(square, -1, 1, N_DEFAULT)
         case "noise":
             def noise(x):
