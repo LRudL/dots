@@ -36,7 +36,7 @@ parameters:
   modelarg_bias: 
     value: true
   dataset_name: 
-    value: relu
+    value: noise
   dataset_train_frac:
     value: 0.8
   dataset_test_frac:
@@ -60,7 +60,3 @@ parameters:
     value: "[32, 128, 1024]"
   log_datadots:
     value: "[32, 128, 1024]"
-  log_trainstate_datasize:
-    value: 1024
-  log_trainstate_randsize:
-    value: "[1024, 8192]"

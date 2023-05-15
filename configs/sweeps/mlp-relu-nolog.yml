@@ -60,7 +60,3 @@ parameters:
     value: "[32, 128, 1024]"
   log_datadots:
     value: "[32, 128, 1024]"
-  log_trainstate_datasize:
-    value: 1024
-  log_trainstate_randsize:
-    value: "[1024, 8192]"
