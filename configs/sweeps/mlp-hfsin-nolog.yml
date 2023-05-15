@@ -22,15 +22,11 @@ parameters:
     value: 1
   modelarg_hidden: 
     values:
-      - "[8]"
-      - "[64]"
       - "[512]"
-      - "[8, 8]"
-      - "[8, 8, 8]"
-      - "[8, 8, 8, 8]"
-      - "[32]"
-      - "[32, 32]"
-      - "[32, 32, 32]"
+      - "[4096]"
+      - "[64, 64, 64]"
+      - "[128, 64, 16]"
+      - "[128, 128]"
   modelarg_out_size: 
     value: 1
   modelarg_bias: 
@@ -52,7 +48,7 @@ parameters:
     min: 0.0001
     max: 0.1
   hp_epochs:
-    value: 30
+    value: 80
   hp_batch_size:
     values:
       - 64
