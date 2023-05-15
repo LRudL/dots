@@ -85,7 +85,7 @@ def get_dataset(name, seed=SEED_DEFAULT):
             return tdata.TensorDataset(X, Y)
         case "randtwoclasses":
             t.manual_seed(seed)
-            N = 20
+            N = 40
             d = 1.0
             std = 0.3
             mean1 = t.tensor([d, d])

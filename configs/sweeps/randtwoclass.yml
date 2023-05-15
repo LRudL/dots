@@ -24,7 +24,9 @@ parameters:
   modelarg_hidden: 
     values:
       - "[1024]"
+      - "[4096]"
       - "[12, 12, 12]"
+      - "[24, 24, 24]"
       - "[128, 128]"
       - "[128, 128, 128]"
   dataset_name: 
@@ -50,7 +52,7 @@ parameters:
       - 1
       - 4
   log_dots:
-    value: "[4, 16]"
+    value: "[16, 64, 512]"
   log_datadots:
     value: "[4, 16]"
   log_accuracy:
