@@ -51,5 +51,25 @@ def get_dataset(name):
             def noise(x):
                 return t.rand_like(x)
             return algorithmic_dataset(noise, -1, 1, N_DEFAULT)
+        case "twoclasses":
+            mean1 = t.tensor([0.5, 0.5])
+            mean2 = t.tensor([-0.5, -0.5])
+            std1 = t.tensor([0.1, 0.1])
+            std2 = t.tensor([0.1, 0.1])
+            def gen_cluster(mean, std, n):
+                points = t.empty((n, 2))
+                for i in range(n):
+                    points[i] = t.normal(mean=mean, std=std)
+                return points
+            cluster1 = gen_cluster(mean1, std1, N_DEFAULT // 2)
+            cluster2 = gen_cluster(mean2, std2, N_DEFAULT // 2)
+            X = t.cat((cluster1, cluster2))
+            Y = t.cat(
+                (t.zeros(N_DEFAULT // 2).long(),
+                 t.ones(N_DEFAULT // 2).long()))
+            shuffled_idx = t.randperm(N_DEFAULT)
+            X = X[shuffled_idx]
+            Y = Y[shuffled_idx]
+            return tdata.TensorDataset(X, Y)
         case _:
             raise ValueError(f"Unknown dataset name: {name}")

@@ -119,6 +119,31 @@ def plot_u_feats_img(start, end, n, model, ax=None):
     if given_ax is None:
         fig.show()
 
+def plot_2d_points(X, Y):
+    unique_labels = t.unique(Y)  # Get unique labels
+
+    # Set up colors for each label
+    colors = plt.cm.get_cmap('tab10', len(unique_labels))
+
+    # Plot the points with different colors based on labels
+    for i, label in enumerate(unique_labels):
+        label_points = X[Y == label]  # Filter points for each label
+        plt.scatter(
+            label_points[:, 0],
+            label_points[:, 1],
+            color=colors(i),
+            label=f'Label {label}',
+            s=1
+        )
+
+    # Add legend and labels
+    plt.legend()
+    plt.xlabel('X')
+    plt.ylabel('Y')
+
+    # Display the plot
+    plt.show()
+
 
 def plot_dots_estimates(model, inputs, ax=None):
     given_ax = ax
