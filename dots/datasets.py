@@ -44,8 +44,8 @@ def get_dataset(name):
                 xp = 2 * x
                 return t.where(
                         t.floor(xp) % 2 == 0,
-                        t.tensor(-1).to(get_device()),
-                        t.tensor(1).to(get_device()))
+                        t.tensor(-1.).to(get_device()),
+                        t.tensor(1.).to(get_device()))
             return algorithmic_dataset(square, -1, 1, N_DEFAULT)
         case "noise":
             def noise(x):
