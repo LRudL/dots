@@ -1,8 +1,11 @@
+from collections import namedtuple
 import torch as t
 import torch.nn.functional as f
 import torch.nn.utils.stateless as stateless
 from einops import rearrange
-from dots.utils import entropy, get_device
+from dots.utils import entropy, get_device, first_occurrence_of_equal_adjacents
+
+SVDReturnType = namedtuple("SVD", ["U", "S", "Vh"])
 
 def jacobian(model, inputs):
     # def input_as_fn_of_params(param_tensor):
@@ -24,8 +27,13 @@ def matrix_jacobian(model, inputs):
 def jacobian_matrix_rank(model, inputs):
     return t.linalg.matrix_rank(matrix_jacobian(model, inputs))
 
-def jacobian_singular_values(model, inputs):
-    return t.linalg.svd(matrix_jacobian(model, inputs)).S
+def jacobian_singular_values(model, inputs, heuristic_trim=True):
+    S = t.linalg.svd(matrix_jacobian(model, inputs)).S
+    if heuristic_trim:
+        i_cut = first_occurrence_of_equal_adjacents(S, max=1e-3)
+        if i_cut is not None:
+            S = S[:i_cut]
+    return S
 
 def singular_value_rank(model, inputs, method="entropy", **kwargs):
     if method=="entropy":
@@ -48,6 +56,8 @@ def singular_value_rank(model, inputs, method="entropy", **kwargs):
         # (NB: F I R S T  such index; there might be many)
         # (+1 because of 0-indexing)
         return t.argmax(((svs - cumsums) > 0).float()).item() + 1
+    elif method=="trim":
+        return jacobian_singular_values(model, inputs, heuristic_trim=True).shape[0]
     else:
         # TODO: SVs that add up to e.g. 95% of the total
         raise Exception(
@@ -57,11 +67,18 @@ def jacobian_parameter_importances(model, inputs):
     jacobian = matrix_jacobian(model, inputs)
     return (jacobian ** 2).sum(dim=0)
 
-def jacobian_svd(model, inputs):
-    return t.linalg.svd(
+def jacobian_svd(model, inputs, heuristic_trim=True):
+    U, S, Vh = t.linalg.svd(
         matrix_jacobian(model, inputs),
         full_matrices=False
     )
+    if heuristic_trim:
+        i_cut = first_occurrence_of_equal_adjacents(S, max=1e-3)
+        if i_cut is not None:
+            U = U[:, :i_cut]
+            S = S[:i_cut]
+            Vh = Vh[:i_cut, :]
+    return SVDReturnType(U=U, S=S, Vh=Vh)
 
 def u_features(model, inputs):
     """Returns the N x R matrix of the U in the SVD decomposition
@@ -111,8 +128,12 @@ class JModule(t.nn.Module):
     def jacobian_matrix_rank(self, inputs):
         return jacobian_matrix_rank(self, inputs)
     
-    def jacobian_singular_values(self, inputs):
-        return jacobian_singular_values(self, inputs)
+    def jacobian_singular_values(self, inputs, heuristic_trim=True):
+        return jacobian_singular_values(
+            self,
+            inputs, 
+            heuristic_trim=heuristic_trim
+        )
     
     def singular_value_rank(self, inputs, method="entropy"):
         return singular_value_rank(self, inputs, method=method)

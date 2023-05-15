@@ -15,6 +15,13 @@ def entropy(x, base=math.e):
     x /= x.sum()
     return - (x * t.log(x) / t.log(t.tensor(base))).sum()
 
+def first_occurrence_of_equal_adjacents(x, num_adjacents=2, max=1e-3):
+    for i in range(len(x) - num_adjacents + 1):
+        if all(x[i] == x[i+j] for j in range(num_adjacents)):
+            if max is None or x[i] < max:
+                return i
+    return None
+
 def get_device():
     return t.device("cuda" if t.cuda.is_available() else "cpu")
 
@@ -89,9 +96,9 @@ def average_U(U, s):
     data_sums = t.einsum("nr -> n", U_weighted)
     return data_sums
 
-def load_model(name):
+def load_model(name, loc="models"):
     return t.load(
-        "../models/" + name + ".pt",
+        f"../{loc}/" + name + ".pt",
         map_location=get_device()
     )
 
