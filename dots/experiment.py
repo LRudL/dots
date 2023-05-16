@@ -171,7 +171,7 @@ def parse_config(config, wandb=None):
         ] 
         if datas[-1].shape[-1] > dataset_split_sizes[0]:
             print("WARNING: using test data for data-based DOTS")
-        for x in rand_data:
+        for x in datas:
             hooks.append(
                 jacobian_rank_hook(
                     x, 
