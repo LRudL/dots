@@ -107,6 +107,10 @@ def parse_config(config, wandb=None):
         dataset, 
         lengths = dataset_split_sizes
     )
+    if len(test_ds) == 0:
+        test_ds = train_ds
+    if len(val_ds) == 0:
+        val_ds = train_ds
     train_dataloader = tdata.DataLoader(
         train_ds,
         batch_size=config["hp_batch_size"],

@@ -45,11 +45,11 @@ parameters:
   dataset_name: 
     value: randtwoclasses
   dataset_train_frac:
-    value: 0.8
+    value: 1.0
   dataset_test_frac:
-    value: 0.1
+    value: 0.0
   dataset_val_frac:
-    value: 0.1
+    value: 0.0
   loss_fn:
     value: CrossEntropy
   hp_opt_name:
@@ -70,6 +70,6 @@ parameters:
   log_dots:
     value: "[16, 64, 512]"
   log_datadots:
-    value: "[4, 16]"
+    value: "[4, 16, 40]"
   log_accuracy:
     value: True
