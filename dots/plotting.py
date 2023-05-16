@@ -107,6 +107,70 @@ def plot_1d_u_feats(
     if given_ax is None:
         fig.show()
 
+
+def plot_2d_classification_u_feats(
+    model, 
+    x,
+    y,
+    max_feats=None,
+    which_feat=None,
+    avoid_flip=False,
+    C=10, # number of classes
+    ax=None
+):
+    given_ax = ax
+    if given_ax is None:
+        fig, ax = plt.subplots()
+    x_got_squeezed = False
+    if len(x.shape) == 4:
+        # then assume we got an MNIST shape of [batch, 1, 28, 28]
+        x = x.squeeze(dim=1)
+        x_got_squeezed = True
+    assert len(x.shape) == 3, "x should be of shape [batch, height, width] or [batch, 1, height, width]"
+    batch, height, width = x.shape
+    y_sorted, y_sorted_indices = t.sort(y)
+    x_sorted = x[y_sorted_indices]
+    x_sorted_batch = rearrange(x_sorted, "n h w -> n 1 h w") if x_got_squeezed else x_sorted
+    U_T = model.u_features(x_sorted_batch).detach().cpu().T
+    # U_T now has size [rank, nC], where n = batch, C = number of classes in output 
+    # we want to plot each row of U as a function of x_sorted
+    singular_values = model.jacobian_singular_values(
+        x_sorted_batch
+    ).detach().cpu()
+    rank = U_T.shape[0]
+    N = U_T.shape[1] # = nC
+    assert singular_values.shape[0] == rank, f"shape of singular_values is {singular_values.shape}, but rank is {rank}; should be equal!"
+    assert N == x_sorted.shape[0] * C, f"N is {N} and x_sorted.shape[0] * C is {x_sorted.shape[0]}*{C} = {C * x_sorted.shape[0]}; should be equal!"
+    max_singular_value = singular_values.max()
+    for i in range(U_T.shape[0]):
+        if (which_feat is None and (max_feats is None or i < max_feats)) or i == which_feat:
+            Ui_sorted = U_T[i]
+            if not avoid_flip:
+                if Ui_sorted[-1] < 0:
+                    Ui_sorted = -Ui_sorted
+            # reshape from [nC] to [n, C]:
+            Ui_sorted = rearrange(Ui_sorted, "(n C) -> n C", n=batch)
+            if singular_values[i] / max_singular_value > 0.01:
+                ax.imshow(
+                    Ui_sorted.detach().cpu().numpy(),
+                    cmap="inferno",
+                    aspect=0.1
+                )
+                c_start_indices = list(change_indices(y_sorted)) + [y_sorted.shape[0]]
+                for i, ic in enumerate(c_start_indices[:-1]):
+                    c = y_sorted[ic].item()
+                    avg_loc = (ic + c_start_indices[i + 1]) // 2
+                    ax.text(
+                        C, 
+                        avg_loc, 
+                        str(c)
+                    )
+                    ax.axhline(y=ic, color="blue", linestyle="dotted")
+    ax.set_title("U feature")
+    if given_ax is None:
+        fig.show()
+
+
 def plot_u_feats_img(start, end, n, model, ax=None):
     given_ax = ax
     if given_ax is None:

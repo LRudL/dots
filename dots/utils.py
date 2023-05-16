@@ -16,6 +16,12 @@ def prepend_zeros(num, n):
 def is_tensor(obj):
     return isinstance(obj, t.Tensor)
 
+def change_indices(tensor):
+    return t.cat([
+        t.tensor([0]),
+        t.nonzero(t.diff(tensor, dim=0)).squeeze(-1) + 1
+        ], dim=0)
+
 def entropy(x, base=math.e):
     if isinstance(x, list) or isinstance(x, tuple):
         x = t.tensor(x)
@@ -75,9 +81,12 @@ def with_changed_pixel(tensor, change_amount=0.01):
 def dataset_from_end(dataset, length):
     return tdata.Subset(dataset, range(len(dataset)-length, len(dataset))) 
 
-def x_y_tensors_of_dataset(dataset):
+def x_y_tensors_of_dataset(dataset, indices=None):
     x = []
     y = []
+    if indices == None:
+        indices = range(len(dataset))
+    dataset = tdata.Subset(dataset, indices)
     for item, label in dataset:
         x.append(item)
         y.append(label)
