@@ -1,5 +1,6 @@
 from dots.utils import *
 import matplotlib.pyplot as plt
+import matplotlib.colors as colors
 
 default_color_cycle = plt.rcParams['axes.prop_cycle'].by_key()['color']
 
@@ -153,8 +154,9 @@ def plot_2d_classification_u_feats(
             if singular_values[i] / max_singular_value > 0.01:
                 ax.imshow(
                     Ui_sorted.detach().cpu().numpy(),
-                    cmap="inferno",
-                    aspect=0.1
+                    cmap="seismic",
+                    aspect=0.1,
+                    norm=colors.CenteredNorm(vcenter=0.0)
                 )
                 c_start_indices = list(change_indices(y_sorted)) + [y_sorted.shape[0]]
                 for i, ic in enumerate(c_start_indices[:-1]):
