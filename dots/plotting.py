@@ -24,8 +24,20 @@ def plot_1d_fn(fn, start=-1, end=1, n=1000, ax=None):
         fig, ax = plt.subplots()
     x = t.linspace(start, end, n)
     x = rearrange(x, "n -> n 1")
+    fn2 = False
+    if isinstance(fn, tuple) or isinstance(fn, list):
+        fn, fn2 = fn
     y = fn(x).detach().cpu().numpy()
     ax.plot(x.detach().cpu().numpy(), y)
+    if fn2:
+        y2 = fn2(x).detach().cpu().numpy()
+        ax.plot(
+            x.detach().cpu().numpy(), 
+            y2, 
+            linestyle="dashed", 
+            alpha=0.5,
+            color="black"
+        )
     ax.set_xlabel("x")
     ax.set_ylabel("f(x)")
     ax.set_title("1d function plot")
@@ -248,24 +260,28 @@ def plot_decision_boundary(model, X, y, resolution=0.02):
 
 
 
-def plot_dots_estimates(model, inputs, ax=None):
+def plot_dots_estimates(model, inputs, custom_max = None, custom_max_label=None, ax=None):
     given_ax = ax
     if given_ax is None:
         fig, ax = plt.subplots()
+    def max_getter(m, x):
+        if custom_max is not None:
+            return custom_max(m, x)
+        return min(
+            m.count_params(),
+            np.prod(np.array(x.shape))
+        )
     dots_getters = [
         lambda m, x : m.jacobian_matrix_rank(x),
         lambda m, x : m.singular_value_rank(x, method="entropy"),
         lambda m, x : m.singular_value_rank(x, method="trim"),
-        lambda m, x : min(
-            m.count_params(),
-            np.prod(np.array(x.shape))
-        )
+        max_getter
     ]
     getter_names = [
         "Jacobian rank",
         "SV (entropy)",
         "SV (trim)",
-        "max"
+        "max" if custom_max_label is None else custom_max_label
     ]
     # TODO log scale?
     if isinstance(inputs, t.Tensor):
@@ -283,13 +299,15 @@ def plot_dots_estimates(model, inputs, ax=None):
         for i, value in enumerate(y):
             # display to 2 decimal places:
             text = f"{value:.2f}" if isinstance(value, float) else str(value)
-            ax.text(x_loc, value, text, ha='center', va='bottom')
+            ax.text(x_loc[i], value, text, ha='center', va='bottom')
     ax.legend()
     ax.set_xticks(x, [input.shape[0] for input in inputs])
     ax.set_xlabel("Data points")
+    if given_ax is None:
+        fig.show()
 
  
-def plot_singular_value_distribution(model, inputs, ax=None):
+def plot_singular_value_distribution(model, inputs, trim=True, ax=None):
     given_ax = ax
     if given_ax is None:
         fig, ax = plt.subplots()
@@ -297,7 +315,10 @@ def plot_singular_value_distribution(model, inputs, ax=None):
         inputs = [inputs]
     num_values = 0
     for input in inputs:
-        values = model.jacobian_singular_values(input).cpu()
+        values = model.jacobian_singular_values(
+            input, 
+            heuristic_trim=trim
+        ).cpu()
         num_values = max(num_values, values.shape[0])
         ax.plot(
             values, 
@@ -331,7 +352,7 @@ def plot_jacobian_img(model, x, ax=None, fig=None):
 
 def trainplot_1d_regression_over_axes(model, x, ax, fig):
     # plot dots estimates:
-    plot_dots_estimates(model, x, ax[0])
+    plot_dots_estimates(model, x, ax=ax[0])
     
     # plot singular value distribution:
     plot_singular_value_distribution(model, x, ax=ax[1])
