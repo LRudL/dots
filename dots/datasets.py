@@ -20,9 +20,32 @@ def gen_cluster(mean, std, n):
         points[i] = t.normal(mean=mean, std=std)
     return points
 
+def hfsin2andblock(x):
+    def sin(x):
+        return t.sin(t.pi * 3 * x) / 2
+    def block(x):
+        return t.where(
+                (x > 0.25) & (x < 0.75),
+                -sin(x) + sin(t.tensor(0.25)),
+                t.tensor(0.0).to(get_device()))
+    return sin(x) + block(x)
+
 
 def get_dataset(name, seed=SEED_DEFAULT):
     match name:
+        case "cluster":
+            t.manual_seed(seed)
+            N = 128
+            mean1 = t.tensor([0.5, 0.5])
+            mean2 = t.tensor([-0.5, -0.5])
+            std = t.tensor([0.1, 0.1])
+            X1 = gen_cluster(mean1, std, N)
+            X2 = gen_cluster(mean2, std, N)
+            X = t.cat((X1, X2))
+            Y = t.cat((t.ones(N), -t.ones(N)))
+            dataset = tdata.TensorDataset(X, Y)
+            return dataset
+        
         case "mnist":
             import torchvision
             import torchvision.transforms as transforms
@@ -51,15 +74,6 @@ def get_dataset(name, seed=SEED_DEFAULT):
                 return t.sin(t.pi * 3 * x) / 2
             return algorithmic_dataset(sin, -1, 1, N_DEFAULT)
         case "hfsin2andblock":
-            def sin(x):
-                return t.sin(t.pi * 3 * x) / 2
-            def block(x):
-                return t.where(
-                        (x > 0.25) & (x < 0.75),
-                        -sin(x) + sin(t.tensor(0.25)),
-                        t.tensor(0.0).to(get_device()))
-            def hfsin2andblock(x):
-                return sin(x) + block(x)
             return algorithmic_dataset(hfsin2andblock, -1, 1, N_DEFAULT)
         case "square":
             def square(x):
