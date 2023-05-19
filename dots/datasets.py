@@ -137,5 +137,30 @@ def get_dataset(name, seed=SEED_DEFAULT):
             X = X[shuffled_idx]
             Y = Y[shuffled_idx]
             return tdata.TensorDataset(X, Y)
+        case "randtwoclassesHARD":
+            t.manual_seed(seed)
+            N = 100
+            d = 1.0
+            std = 0.3
+            mean1 = t.tensor([d, d])
+            mean2 = t.tensor([-d, -d])
+            mean3 = t.tensor([d, -d])
+            mean4 = t.tensor([-d, d])
+            std1 = t.tensor([std, std])
+            std2 = t.tensor([std, std])
+            std3 = t.tensor([std, std])
+            std4 = t.tensor([std, std])
+            cluster1 = gen_cluster(mean1, std1, N // 4)
+            cluster2 = gen_cluster(mean2, std2, N // 4)
+            cluster3 = gen_cluster(mean3, std3, N // 4)
+            cluster4 = gen_cluster(mean4, std4, N // 4)
+            X = t.cat((cluster1, cluster2, cluster3, cluster4))[t.randperm(N)]
+            Y = t.cat(
+                (t.zeros(N // 2).long(),
+                    t.ones(N // 2).long()))
+            shuffled_idx = t.randperm(N)
+            X = X[shuffled_idx]
+            Y = Y[shuffled_idx]
+            return tdata.TensorDataset(X, Y)
         case _:
             raise ValueError(f"Unknown dataset name: {name}")
