@@ -18,6 +18,7 @@ def integer_histogram(x, ax=None, xlabel=""):
         plt.show()
 
 
+
 def plot_1d_fn(fn, start=-1, end=1, n=1000, ax=None):
     given_ax = ax
     if given_ax is None:
@@ -44,6 +45,25 @@ def plot_1d_fn(fn, start=-1, end=1, n=1000, ax=None):
     if given_ax is None:
         fig.show()
 
+def plot_1d_fns(fns, start=-1, end=1, n=1000, labels=None, ylabel=None, ax=None):
+    given_ax = ax
+    if given_ax is None:
+        fig, ax = plt.subplots()
+    x = t.linspace(start, end, n)
+    x = rearrange(x, "n -> n 1")
+    for fn in fns:
+        y = fn(x).detach().cpu().numpy()
+        ax.plot(x.detach().cpu().numpy(), y)
+    if labels is not None:
+        ax.legend(labels)
+    ax.set_xlabel("x")
+    if ylabel is not None:
+        ax.set_ylabel(ylabel)
+    else:
+        ax.set_ylabel("f(x)")
+    if given_ax is None:
+        fig.show()
+
 def plot_1d_fn_from_data(fn, x, ax=None):
     given_ax = ax
     if given_ax is None:
@@ -62,7 +82,8 @@ def plot_1d_u_feats(
     x,
     max_feats=None,
     which_feat=None,
-    avoid_flip=False,
+    flip=True,
+    plot_fn=False,
     ax=None
 ):
     given_ax = ax
@@ -88,35 +109,56 @@ def plot_1d_u_feats(
         if (which_feat is None and (max_feats is None or i < max_feats)) or i == which_feat:
             #U_T_sorted = U_T[i, x_sorted_indices]  # Sort U_T[i] according to x_sorted order
             Ui_sorted = U_T_sorted[i]
-            if not avoid_flip:
+            if flip == "function":
+                # take dot product of Ui with the function
+                y_sorted = model(x_sorted_batch).detach().cpu().numpy()
+                dotp = (Ui_sorted * y_sorted).sum()
+                if dotp < 0:
+                    Ui_sorted = -Ui_sorted
+            elif flip != False:
                 if Ui_sorted[-1] < 0:
                     Ui_sorted = -Ui_sorted
-            if singular_values[i] / max_singular_value > 0.01:
-                ax.plot(
-                    x_sorted.detach().cpu().numpy(),
-                    Ui_sorted.detach().cpu().numpy(),
-                    alpha=math.sqrt(singular_values[i] / max_singular_value) if which_feat is None else 1
+            if (singular_values[i] / max_singular_value > 0.01 and max_feats == None) or (max_feats is not None and max_feats > i):
+                if isinstance(ax, np.ndarray):
+                    axi = ax[-1] if i >= len(ax) else ax[i]
+                    alpha = 1
+                    if i >= len(ax):
+                        alpha = math.sqrt(singular_values[i] / singular_values[len(ax)-1])
+                    axi.plot(
+                        x_sorted.detach().cpu().numpy(),
+                        Ui_sorted.detach().cpu().numpy(),
+                        alpha=alpha
+                    )
+                else:
+                    ax.plot(
+                        x_sorted.detach().cpu().numpy(),
+                        Ui_sorted.detach().cpu().numpy(),
+                        alpha=math.sqrt(singular_values[i] / max_singular_value) if which_feat is None else 1
+                    )
+    if plot_fn:
+        y_sorted = model(x_sorted_batch).detach().cpu().numpy() 
+        axs = ax
+        if not (isinstance(ax, np.ndarray)):
+            axs = [ax]
+        for axi in axs:
+            axi2 = axi.twinx()
+            axi2.plot(
+                x_sorted,
+                y_sorted,
+                color="black",
+                alpha=0.2
             )
-    ax.set_xlabel("x")
-    ax.set_ylabel("U feature value")
-    ax.set_title("U features")
-    #ax2 = ax.twinx()
-    #ax2.plot(
-    #    x_sorted,
-    #    model(x_sorted_batch).detach().cpu().numpy(),
-    #    color="black",
-    #    linestyle="dotted"
-    #)
-    #ax.set_title("U features, with current function drawn in dotted black")
-    #average_change = average_U(U_T_sorted.T, singular_values)
-    #assert average_change.shape[0] == x_sorted.shape[0]
-    #ax2.plot(
-    #    x_sorted,
-    #    average_change,
-    #    color="black",
-    #    linestyle="dotted"
-    #)
-    #ax.set_title("U features")
+            axi2.set_yticklabels([])
+    if not (isinstance(ax, np.ndarray)):
+        axs = [ax]
+        ax.set_title("U features")
+        ax.set_ylabel("U feature value")
+    else:
+        axs = ax
+        for i, axi in enumerate(axs):
+            axi.set_title(f"U feature {i}, SV={singular_values[i]:.2f}")
+    for axi in axs:
+        axi.set_xlabel("x")
     if given_ax is None:
         fig.show()
 
