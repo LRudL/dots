@@ -17,10 +17,10 @@ parameters:
       - 8
       - 9
       - 10
-  model_class: 
-    values:
-      - BasicCNN
-  modelarg_fc_bias: False
+  model_class:
+    value: BasicCNN
+  modelarg_fc_bias:
+    value: False
   dataset_name: 
     value: mnist
   dataset_train_frac:
