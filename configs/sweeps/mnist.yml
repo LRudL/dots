@@ -35,13 +35,13 @@ parameters:
     min: 0.0001
     max: 0.1
   hp_epochs:
-    value: 4
+    value: 2
   hp_batch_size:
     values:
       - 64
   log_dots:
-    value: "[64, 256, 1024]"
+    value: "[64, 256, 768]"
   log_datadots:
-    value: "[64, 256, 1024]"
+    value: "[64, 256, 768]"
   log_accuracy:
     value: True
