@@ -38,11 +38,10 @@ parameters:
     value: 4
   hp_batch_size:
     values:
-      - 16
       - 64
   log_dots:
-    value: "[4, 16, 64]"
+    value: "[64, 256, 1024]"
   log_datadots:
-    value: "[4, 16, 64]"
+    value: "[64, 256, 1024]"
   log_accuracy:
     value: True
