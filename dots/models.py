@@ -75,6 +75,7 @@ class BasicCNN(JModule):
     def __init__(
         self,
         in_size = (1, 28, 28), # MNIST
+        fc_bias = True,
         **kwargs
     ):
         # currently hard_coded to work only with MNIST sizes
@@ -91,7 +92,7 @@ class BasicCNN(JModule):
             t.nn.MaxPool2d(kernel_size=2)
         )
         
-        self.fc = t.nn.Linear(8 * 5 * 5, 10)
+        self.fc = t.nn.Linear(8 * 5 * 5, 10, bias=fc_bias)
         
     
     def forward(self, x):
