@@ -36,12 +36,9 @@ parameters:
     value: 2
   modelarg_hidden: 
     values:
-      - "[1024]"
-      - "[4096]"
-      - "[12, 12, 12]"
-      - "[24, 24, 24]"
       - "[128, 128]"
-      - "[128, 128, 128]"
+      - "[150, 150]"
+      - "[200, 200]"
   dataset_name: 
     value: randtwoclassesHARD
   dataset_train_frac:
@@ -54,12 +51,11 @@ parameters:
     value: CrossEntropy
   hp_opt_name:
     values:
-      - SGD
       - Adam
   hp_optarg_lr:
     distribution: log_uniform_values
     min: 0.0001
-    max: 0.4
+    max: 0.001
   hp_epochs:
     value: 2000
   hp_batch_size:
@@ -70,6 +66,6 @@ parameters:
   log_datadots:
     value: "[16, 40, 100]"
   log_every_n_epochs:
-    value: 20
+    value: 50
   log_accuracy:
     value: True
