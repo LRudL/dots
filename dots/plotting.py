@@ -107,7 +107,6 @@ def plot_1d_u_feats(
     U_T_sorted = U_T
     for i in range(U_T.shape[0]):
         if (which_feat is None and (max_feats is None or i < max_feats)) or i == which_feat:
-            #U_T_sorted = U_T[i, x_sorted_indices]  # Sort U_T[i] according to x_sorted order
             Ui_sorted = U_T_sorted[i]
             if flip == "function":
                 # take dot product of Ui with the function
@@ -163,6 +162,123 @@ def plot_1d_u_feats(
         fig.show()
 
 
+
+def canonical_2d_ufeats(
+    model, 
+    x,
+    y,
+    avoid_flip=False,
+    C=10, # number of classes
+    return_sorts = False
+):
+    x_got_squeezed = False
+    if len(x.shape) == 4:
+        # then assume we got an MNIST shape of [batch, 1, 28, 28]
+        x = x.squeeze(dim=1)
+        x_got_squeezed = True
+    assert len(x.shape) == 3, f"x should be of shape [batch, height, width] or [batch, 1, height, width], instead was {x.shape}"
+    batch, height, width = x.shape
+    y_sorted, y_sorted_indices = t.sort(y)
+    x_sorted = x[y_sorted_indices]
+    x_sorted_batch = rearrange(x_sorted, "n h w -> n 1 h w") if x_got_squeezed else x_sorted
+    U_T = model.u_features(x_sorted_batch).detach().cpu().T
+    singular_values = model.jacobian_singular_values(x_sorted_batch).detach().cpu()
+    # U_T now has size [rank, nC], where n = batch, C = number of classes in output 
+    # we want to plot each row of U as a function of x_sorted
+    rank = U_T.shape[0]
+    N = U_T.shape[1] # = nC
+    assert N == x_sorted.shape[0] * C, f"N is {N} and x_sorted.shape[0] * C is {x_sorted.shape[0]}*{C} = {C * x_sorted.shape[0]}; should be equal!"
+    if not avoid_flip:
+        for i in range(U_T.shape[0]):
+            if U_T[i][-1] < 0:
+                U_T[i] = -U_T[i]
+    U_T = rearrange(U_T, "R (n C) -> R n C", n=batch)
+    if return_sorts:
+        return U_T, x_sorted_batch, y_sorted, singular_values
+    return U_T
+
+#def plot_2d_classification_u_feats(
+#    model, 
+#    x,
+#    y,
+#    max_feats=None,
+#    which_feat=None,
+#    avoid_flip=False,
+#    C=10, # number of classes
+#    u_features=None, # function will calculate if this is None
+#    singular_values=None, # function will calculate if this is None
+#    ax=None
+#):
+#    given_ax = ax
+#    if given_ax is None:
+#        fig, ax = plt.subplots()
+#    x_got_squeezed = False
+#    if len(x.shape) == 4:
+#        # then assume we got an MNIST shape of [batch, 1, 28, 28]
+#        x = x.squeeze(dim=1)
+#        x_got_squeezed = True
+#    assert len(x.shape) == 3, f"x should be of shape [batch, height, width] or [batch, 1, height, width], instead was {x.shape}"
+#    batch, height, width = x.shape
+#    y_sorted, y_sorted_indices = t.sort(y)
+#    x_sorted = x[y_sorted_indices]
+#    x_sorted_batch = rearrange(x_sorted, "n h w -> n 1 h w") if x_got_squeezed else x_sorted
+#    if u_features is None:
+#        U_T = model.u_features(x_sorted_batch).detach().cpu().T
+#    else:
+#        U_T = u_features.detach().cpu().T
+#    # U_T now has size [rank, nC], where n = batch, C = number of classes in output 
+#    # we want to plot each row of U as a function of x_sorted
+#    if singular_values is None:
+#        singular_values = model.jacobian_singular_values(
+#            x_sorted_batch
+#        )
+#    singular_values = singular_values.detach().cpu()
+#    rank = U_T.shape[0]
+#    N = U_T.shape[1] # = nC
+#    assert singular_values.shape[0] == rank, f"shape of singular_values is {singular_values.shape}, but rank is {rank}; should be equal!"
+#    assert N == x_sorted.shape[0] * C, f"N is {N} and x_sorted.shape[0] * C is {x_sorted.shape[0]}*{C} = {C * x_sorted.shape[0]}; should be equal!"
+#    max_singular_value = singular_values.max()
+#    for i in range(U_T.shape[0]):
+#        if (which_feat is None and (max_feats is None or i < max_feats)) or i == which_feat:
+#            Ui_sorted = U_T[i]
+#            if not avoid_flip:
+#                if Ui_sorted[-1] < 0:
+#                    Ui_sorted = -Ui_sorted
+#            # reshape from [nC] to [n, C]:
+#            Ui_sorted = rearrange(Ui_sorted, "(n C) -> n C", n=batch)
+#            if (singular_values[i] / max_singular_value > 0.01 and max_feats == None) or (max_feats is not None and max_feats > i):
+#                if isinstance(ax, np.ndarray):
+#                   axi = ax[i]
+#                else:
+#                    axi = ax
+#                axi.imshow(
+#                    Ui_sorted.detach().cpu().numpy(),
+#                    cmap="seismic",
+#                    aspect=0.1,
+#                    norm=colors.CenteredNorm(vcenter=0.0)
+#                )
+#                c_start_indices = list(change_indices(y_sorted)) + [y_sorted.shape[0]]
+#                for i, ic in enumerate(c_start_indices[:-1]):
+#                    c = y_sorted[ic].item()
+#                    avg_loc = (ic + c_start_indices[i + 1]) // 2
+#                    axi.text(
+#                        C, 
+#                        avg_loc, 
+#                        str(c)
+#                    )
+#                    axi.axhline(y=ic, color="green", linestyle="dotted")
+#    if not (isinstance(ax, np.ndarray)):
+#        axs = [ax]
+#        ax.set_title("U features")
+#    else:
+#        axs = ax
+#        for i, axi in enumerate(axs):
+#            axi.set_title(f"U feature {i}, SV={singular_values[i]:.2f}")
+#    if given_ax is None:
+#        fig.show()
+#    else:
+#        return ax
+
 def plot_2d_classification_u_feats(
     model, 
     x,
@@ -171,42 +287,35 @@ def plot_2d_classification_u_feats(
     which_feat=None,
     avoid_flip=False,
     C=10, # number of classes
+    u_features_and_extra=None, # function will calculate if this is None
+    singular_values=None, # function will calculate if this is None
     ax=None
 ):
     given_ax = ax
     if given_ax is None:
         fig, ax = plt.subplots()
-    x_got_squeezed = False
-    if len(x.shape) == 4:
-        # then assume we got an MNIST shape of [batch, 1, 28, 28]
-        x = x.squeeze(dim=1)
-        x_got_squeezed = True
-    assert len(x.shape) == 3, "x should be of shape [batch, height, width] or [batch, 1, height, width]"
-    batch, height, width = x.shape
-    y_sorted, y_sorted_indices = t.sort(y)
-    x_sorted = x[y_sorted_indices]
-    x_sorted_batch = rearrange(x_sorted, "n h w -> n 1 h w") if x_got_squeezed else x_sorted
-    U_T = model.u_features(x_sorted_batch).detach().cpu().T
-    # U_T now has size [rank, nC], where n = batch, C = number of classes in output 
+    if u_features_and_extra is None:
+        U_T, x_sorted, y_sorted = canonical_2d_ufeats(model, x, y, avoid_flip=avoid_flip, C=C, return_sorts=True)
+    else:
+        U_T, x_sorted, y_sorted = u_features_and_extra
     # we want to plot each row of U as a function of x_sorted
-    singular_values = model.jacobian_singular_values(
-        x_sorted_batch
-    ).detach().cpu()
+    if singular_values is None:
+        singular_values = model.jacobian_singular_values(
+            x_sorted
+        )
+    singular_values = singular_values.detach().cpu()
     rank = U_T.shape[0]
     N = U_T.shape[1] # = nC
-    assert singular_values.shape[0] == rank, f"shape of singular_values is {singular_values.shape}, but rank is {rank}; should be equal!"
-    assert N == x_sorted.shape[0] * C, f"N is {N} and x_sorted.shape[0] * C is {x_sorted.shape[0]}*{C} = {C * x_sorted.shape[0]}; should be equal!"
     max_singular_value = singular_values.max()
     for i in range(U_T.shape[0]):
         if (which_feat is None and (max_feats is None or i < max_feats)) or i == which_feat:
             Ui_sorted = U_T[i]
-            if not avoid_flip:
-                if Ui_sorted[-1] < 0:
-                    Ui_sorted = -Ui_sorted
-            # reshape from [nC] to [n, C]:
-            Ui_sorted = rearrange(Ui_sorted, "(n C) -> n C", n=batch)
-            if singular_values[i] / max_singular_value > 0.01:
-                ax.imshow(
+            if (singular_values[i] / max_singular_value > 0.01 and max_feats == None) or (max_feats is not None and max_feats > i) or (which_feat == i):
+                if isinstance(ax, np.ndarray):
+                   axi = ax[i]
+                else:
+                    axi = ax
+                axi.imshow(
                     Ui_sorted.detach().cpu().numpy(),
                     cmap="seismic",
                     aspect=0.1,
@@ -216,16 +325,51 @@ def plot_2d_classification_u_feats(
                 for i, ic in enumerate(c_start_indices[:-1]):
                     c = y_sorted[ic].item()
                     avg_loc = (ic + c_start_indices[i + 1]) // 2
-                    ax.text(
+                    axi.text(
                         C, 
                         avg_loc, 
                         str(c)
                     )
-                    ax.axhline(y=ic, color="blue", linestyle="dotted")
-    ax.set_title("U feature")
+                    axi.axhline(y=ic, color="green", linestyle="dotted")
+    if not (isinstance(ax, np.ndarray)):
+        axs = [ax]
+        ax.set_title("U features")
+    else:
+        axs = ax
+        for i, axi in enumerate(axs):
+            axi.set_title(f"U feature {i}, SV={singular_values[i]:.2f}")
     if given_ax is None:
         fig.show()
+    else:
+        return ax
 
+def plot_top_2d_u_feats(
+    model,
+    x,
+    y,
+    C=10,
+    figsize=(20,5),
+    max_feats=10
+):
+    fig, axs = plt.subplots(max_feats, 1, figsize=figsize)
+    returned_axes = []
+    u_feats, x_sorted, y_sorted, singular_values = canonical_2d_ufeats(model, x, y, C=C, return_sorts=True)
+    for i, axi in enumerate(axs):
+        axi_new = plot_2d_classification_u_feats(
+            model,
+            x, 
+            y,
+            which_feat=i,
+            C=C,
+            singular_values=singular_values,
+            u_features_and_extra=(u_feats, x_sorted, y_sorted),
+            ax=axi
+        ) 
+        returned_axes.append(axi_new)
+    for i, axi in enumerate(returned_axes):
+        axi.set_title(f"U-feature {i}, SV={singular_values[i]:.2f}")
+        axi.set_xticks(range(0, 10))
+    fig.show()
 
 def plot_u_feats_img(start, end, n, model, ax=None):
     given_ax = ax

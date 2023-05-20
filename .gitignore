@@ -3,6 +3,7 @@ notebooks/data
 notebooks/imgs
 data
 models/*
+models*
 out/*
 out*
 test_model_file
