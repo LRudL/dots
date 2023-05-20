@@ -66,8 +66,10 @@ parameters:
     values:
       - 1
   log_dots:
-    value: "[64, 512, 1024]"
+    value: "[64, 512]"
   log_datadots:
     value: "[16, 40, 100]"
+  log_every_n_epochs:
+    value: 100
   log_accuracy:
     value: True

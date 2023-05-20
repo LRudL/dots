@@ -146,6 +146,7 @@ def parse_config(config, wandb=None):
     
     real_in_size = model.in_size#config.get("modelarg_in_size", model.in_size)
     
+    log_every_n_epochs = config.get("log_every_n_epochs", 1)
     if config.get("log_dots") is not None:
         rand_data = [
             range_batch(
@@ -159,7 +160,7 @@ def parse_config(config, wandb=None):
             hooks.append(
                 jacobian_rank_hook(
                     x,
-                    epochs=1,
+                    epochs=log_every_n_epochs,
                     name_extra="(rand)",
                     wandb=wandb
                 )
@@ -175,7 +176,7 @@ def parse_config(config, wandb=None):
             hooks.append(
                 jacobian_rank_hook(
                     x, 
-                    epochs=1, 
+                    epochs=log_every_n_epochs, 
                     name_extra="(data)", 
                     wandb=wandb
                 )

@@ -330,7 +330,7 @@ def plot_2d_classification_u_feats(
                         avg_loc, 
                         str(c)
                     )
-                    axi.axhline(y=ic, color="green", linestyle="dotted")
+                    axi.axhline(y=ic, color="black", linestyle="dashed")
     if not (isinstance(ax, np.ndarray)):
         axs = [ax]
         ax.set_title("U features")
