@@ -22,6 +22,8 @@ def matrix_jacobian(model, inputs):
     J = jacobian(model, inputs)
     if len(J.shape) == 3:
         J = rearrange(J, "b o p -> (b o) p")
+    if len(J.shape) == 4:
+        J = rearrange(J, "b o1 o2 p -> (b o1 o2) p")
     return J
 
 def jacobian_matrix_rank(model, inputs):
@@ -100,6 +102,13 @@ class JModule(t.nn.Module):
         return t.cat([
             parameter.view(-1)
             for parameter in self.parameters()])
+
+    def state_dict_shapes(self):
+        state_dict = self.state_dict()
+        d = {}
+        for key, parameter in state_dict.items():
+            d[key] = parameter.shape
+        return d
     
     def param_tensor_to_state_dict(self, param_tensor):
         assert len(param_tensor.shape) == 1, "load_param_tensor expects 1D tensor"
