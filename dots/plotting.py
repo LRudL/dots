@@ -77,6 +77,23 @@ def plot_1d_fn_from_data(fn, x, ax=None):
     if given_ax is None:
         fig.show()
 
+
+def canonical_1d_ufeats(
+    model, 
+    x,
+    flip=True
+):
+    x_sorted_indices = np.argsort(x.squeeze().cpu())  # Sort the indices of x in ascending order
+    x_sorted = x.squeeze()[x_sorted_indices]  # Sort the flattened x values
+    x_sorted_batch = rearrange(x_sorted, "n -> n 1")
+    U_T = model.u_features(x_sorted_batch).detach().cpu().T
+    # U_T now has size [rank, N] with x_sorted order;
+    for i in range(U_T.shape[0]):
+        if flip == False:
+            if U_T[-1, i] < 0:
+                U_T[i] = -U_T[i]
+    return U_T
+
 def plot_1d_u_feats(
     model, 
     x,
