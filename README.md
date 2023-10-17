@@ -1,6 +1,8 @@
 # dots
 DOTS = Dimensionality Of Tangent Space. Deep learning theory investigation.
 
+This is the codebase behind [this project](https://drive.google.com/file/d/1GQSWGaG4tpALaobJrutWlPBAyNIBUSVt/view).
+
 ## Installation
 
 ### Environment setup
